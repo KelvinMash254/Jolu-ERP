@@ -83,9 +83,9 @@ async function main() {
   }
 
   const companies = [
-    { code: CompanyCode.MACHINERIES, name: 'Jolu Machineries Ltd', legalName: 'Jolu Machineries Limited', kraPin: 'P051234567A' },
-    { code: CompanyCode.SECURITY, name: 'Jolu Group Security Ltd', legalName: 'Jolu Group Security Limited', kraPin: 'P051234568B' },
-    { code: CompanyCode.AUTOMOBILE, name: 'Jolu Automobile Ltd', legalName: 'Jolu Automobile Limited', kraPin: 'P051234569C' },
+    { code: CompanyCode.MACHINERIES, name: 'Jolu Machineries Ltd', legalName: 'Jolu Machineries Limited', kraPin: 'P051234567A', logoUrl: '/uploads/logos/machineries.png' },
+    { code: CompanyCode.SECURITY, name: 'Jolu Group Security Ltd', legalName: 'Jolu Group Security Limited', kraPin: 'P051234568B', logoUrl: '/uploads/logos/security.png' },
+    { code: CompanyCode.AUTOMOBILE, name: 'Jolu Automobile Ltd', legalName: 'Jolu Automobile Limited', kraPin: 'P051234569C', logoUrl: '/uploads/logos/automobile.png' },
   ];
 
   const createdCompanies = [];

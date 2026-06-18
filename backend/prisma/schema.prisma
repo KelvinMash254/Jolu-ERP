@@ -803,7 +803,7 @@ model Invoice {
   @@unique([companyId, invoiceNumber])
   @@index([companyId, status])
 
-  journalEntryId String?
+  journalEntryId String?       @unique
   journalEntry   JournalEntry? @relation(fields:[journalEntryId], references:[id])
 }
 

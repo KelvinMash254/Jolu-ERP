@@ -1,18 +1,42 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import api from '../services/api';
 import { PageHeader, LoadingSpinner } from '../components/ui/Shared';
+import UserModal from '../components/UserModal';
 
 export default function UsersPage() {
+  const queryClient = useQueryClient();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const { data, isLoading } = useQuery({
     queryKey: ['users'],
     queryFn: () => api.get('/users'),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data: any) => api.post('/users', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      setIsModalOpen(false);
+    },
   });
 
   const users = data?.data?.data || [];
 
   return (
     <div>
-      <PageHeader title="User Management" subtitle="Manage users, roles, and permissions" actions={<button className="btn-primary">Add User</button>} />
+      <PageHeader
+        title="User Management"
+        subtitle="Manage users, roles, and permissions"
+        actions={
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="btn-primary"
+          >
+            Add User
+          </button>
+        }
+      />
       <div className="p-8">
         {isLoading ? <LoadingSpinner /> : (
           <div className="card overflow-hidden p-0">
@@ -27,6 +51,12 @@ export default function UsersPage() {
           </div>
         )}
       </div>
+
+      <UserModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={(data) => createMutation.mutate(data)}
+      />
     </div>
   );
 }

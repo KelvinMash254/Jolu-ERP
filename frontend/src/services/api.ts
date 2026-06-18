@@ -56,9 +56,10 @@ export const inventoryApi = {
 
 export const invoiceApi = {
   getAll: (params?: Record<string, string>) => api.get('/invoices', { params }),
+  getOne: (id: string) => api.get(`/invoices/${id}`),
   create: (data: object) => api.post('/invoices', data),
-  generatePdf: (id: string) => api.post(`/invoices/${id}/pdf`),
-  send: (id: string) => api.post(`/invoices/${id}/send`),
+  generatePdf: (id: string, options?: object) => api.post(`/invoices/${id}/pdf`, options),
+  send: (id: string, options?: object) => api.post(`/invoices/${id}/send`, options),
 };
 
 export const accountingApi = {
