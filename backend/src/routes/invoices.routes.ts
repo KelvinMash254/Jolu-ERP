@@ -50,7 +50,15 @@ router.post('/', requirePermission('invoices', 'create'), async (req: AuthReques
         totalAmount: subtotal + taxAmount,
         dueDate: dueDate ? new Date(dueDate) : undefined,
         notes,
-        lines: { create: lines.map(({ total, ...rest }: any) => rest) },
+        lines: {
+          create: lines.map((l: any) => ({
+            description: l.description,
+            quantity: l.quantity,
+            unitPrice: l.unitPrice,
+            taxRate: l.taxRate || 16,
+            total: Number(l.quantity) * Number(l.unitPrice)
+          }))
+        },
       },
       include: { lines: true, customer: true },
     });
@@ -76,9 +84,10 @@ router.post('/', requirePermission('invoices', 'create'), async (req: AuthReques
         { reference: inv.invoiceNumber, sourceType: 'INVOICE', sourceId: inv.id, createdBy: req.user?.id }
       );
 
-      await tx.invoice.update({
+      return await tx.invoice.update({
         where: { id: inv.id },
         data: { journalEntryId: entry.id },
+        include: { lines: true, customer: true }
       });
     }
 
@@ -91,7 +100,7 @@ router.post('/', requirePermission('invoices', 'create'), async (req: AuthReques
 router.get('/:id', requirePermission('invoices', 'read'), async (req: AuthRequest, res: Response) => {
   const invoice = await prisma.invoice.findFirst({
     where: { id: req.params.id, companyId: req.companyId! },
-    include: { lines: true, customer: true, securityClient: true, payments: true },
+    include: { lines: true, customer: true, securityClient: true, payments: true, company: true },
   });
   if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
   res.json({ success: true, data: invoice });

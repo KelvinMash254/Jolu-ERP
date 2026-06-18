@@ -95,7 +95,7 @@ export default function InvoicePreviewModal({ isOpen, onClose, invoiceId }: Invo
             <div className="pt-6 border-t space-y-3">
               <button
                 onClick={() => generatePdfMutation.mutate(primaryColor)}
-                disabled={generatePdfMutation.isPending}
+                disabled={generatePdfMutation.isPending || !invoice}
                 className="w-full flex items-center justify-center gap-2 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
               >
                 <Download className="w-4 h-4" />
@@ -109,7 +109,7 @@ export default function InvoicePreviewModal({ isOpen, onClose, invoiceId }: Invo
                 <Send className="w-4 h-4" />
                 {sendEmailMutation.isPending ? 'Sending...' : 'Send to Customer'}
               </button>
-              {!invoice?.customer?.email && (
+              {!invoice?.customer?.email && invoice && (
                 <p className="text-[10px] text-amber-600 text-center">Customer email missing</p>
               )}
             </div>
@@ -117,7 +117,7 @@ export default function InvoicePreviewModal({ isOpen, onClose, invoiceId }: Invo
 
           {/* Preview Panel */}
           <div className="flex-1 bg-gray-200 p-8 overflow-y-auto flex justify-center">
-            {isLoading ? <LoadingSpinner /> : (
+            {isLoading || !invoice ? <LoadingSpinner /> : (
               <div className="bg-white w-full max-w-[210mm] shadow-lg p-[20mm] min-h-[297mm] flex flex-col">
                 <div className="flex justify-between items-start mb-12">
                   <div>
@@ -158,7 +158,7 @@ export default function InvoicePreviewModal({ isOpen, onClose, invoiceId }: Invo
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {invoice.lines.map((line: any) => (
+                      {(invoice.lines || []).map((line: any) => (
                         <tr key={line.id}>
                           <td className="py-4 px-4">{line.description}</td>
                           <td className="py-4 px-4 text-center">{Number(line.quantity)}</td>
