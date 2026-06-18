@@ -50,7 +50,7 @@ router.post('/', requirePermission('invoices', 'create'), async (req: AuthReques
         totalAmount: subtotal + taxAmount,
         dueDate: dueDate ? new Date(dueDate) : undefined,
         notes,
-        lines: { create: lines },
+        lines: { create: lines.map(({ total, ...rest }: any) => rest) },
       },
       include: { lines: true, customer: true },
     });
@@ -98,14 +98,15 @@ router.get('/:id', requirePermission('invoices', 'read'), async (req: AuthReques
 });
 
 router.post('/:id/pdf', requirePermission('invoices', 'read'), async (req: AuthRequest, res: Response) => {
-  const pdfUrl = await generateInvoicePDF(req.params.id);
+  const { primaryColor } = req.body;
+  const pdfUrl = await generateInvoicePDF(req.params.id, { primaryColor });
   res.json({ success: true, data: { pdfUrl } });
 });
 
 router.post('/:id/send', requirePermission('invoices', 'update'), async (req: AuthRequest, res: Response) => {
   const invoice = await prisma.invoice.findFirst({
     where: { id: req.params.id, companyId: req.companyId! },
-    include: { customer: true },
+    include: { customer: true, company: true },
   });
   if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
 

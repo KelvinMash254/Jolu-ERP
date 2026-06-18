@@ -6,7 +6,11 @@ import path from 'path';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'invoices');
 
-export async function generateInvoicePDF(invoiceId: string): Promise<string> {
+export interface PDFOptions {
+  primaryColor?: string;
+}
+
+export async function generateInvoicePDF(invoiceId: string, options: PDFOptions = {}): Promise<string> {
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
     include: {
@@ -25,6 +29,7 @@ export async function generateInvoicePDF(invoiceId: string): Promise<string> {
 
   const fileName = `${invoice.invoiceNumber.replace(/\//g, '-')}.pdf`;
   const filePath = path.join(UPLOAD_DIR, fileName);
+  const primaryColor = options.primaryColor || '#0ea5e9'; // Default Jolu blue
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 50 });
@@ -32,13 +37,13 @@ export async function generateInvoicePDF(invoiceId: string): Promise<string> {
     doc.pipe(stream);
 
     // Header
-    doc.fontSize(20).text(invoice.company.name, { align: 'left' });
-    doc.fontSize(10).text(invoice.company.address || '', { align: 'left' });
+    doc.fontSize(20).fillColor(primaryColor).text(invoice.company.name, { align: 'left' });
+    doc.fontSize(10).fillColor('#000000').text(invoice.company.address || '', { align: 'left' });
     doc.text(`KRA PIN: ${invoice.company.kraPin || 'N/A'}`);
     doc.moveDown();
 
-    doc.fontSize(16).text(formatInvoiceType(invoice.type), { align: 'right' });
-    doc.fontSize(10).text(`# ${invoice.invoiceNumber}`, { align: 'right' });
+    doc.fontSize(16).fillColor(primaryColor).text(formatInvoiceType(invoice.type), { align: 'right' });
+    doc.fontSize(10).fillColor('#000000').text(`# ${invoice.invoiceNumber}`, { align: 'right' });
     doc.text(`Date: ${invoice.issueDate.toLocaleDateString()}`, { align: 'right' });
     if (invoice.dueDate) doc.text(`Due: ${invoice.dueDate.toLocaleDateString()}`, { align: 'right' });
     doc.moveDown();
@@ -56,14 +61,15 @@ export async function generateInvoicePDF(invoiceId: string): Promise<string> {
 
     // Line items table
     const tableTop = doc.y;
-    doc.fontSize(10).font('Helvetica-Bold');
-    doc.text('Description', 50, tableTop);
-    doc.text('Qty', 300, tableTop);
-    doc.text('Unit Price', 350, tableTop);
-    doc.text('Total', 450, tableTop);
-    doc.font('Helvetica');
+    doc.rect(50, tableTop, 500, 20).fill(primaryColor);
+    doc.fontSize(10).font('Helvetica-Bold').fillColor('#FFFFFF');
+    doc.text('Description', 60, tableTop + 5);
+    doc.text('Qty', 300, tableTop + 5);
+    doc.text('Unit Price', 350, tableTop + 5);
+    doc.text('Total', 450, tableTop + 5);
+    doc.font('Helvetica').fillColor('#000000');
 
-    let y = tableTop + 20;
+    let y = tableTop + 25;
     for (const line of invoice.lines) {
       doc.text(line.description, 50, y, { width: 240 });
       doc.text(String(line.quantity), 300, y);
