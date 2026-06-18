@@ -39,98 +39,139 @@ export async function generateInvoicePDF(invoiceId: string, options: PDFOptions 
     // Header
     const headerY = 50;
     if (invoice.company.logoUrl) {
-      // Note: In a real environment we would need to handle image loading (fetch or local path)
-      // For now we assume the logo is accessible or we skip it if it fails
       try {
-        doc.image(invoice.company.logoUrl, 50, headerY, { width: 60 });
-      } catch (e) { /* skip logo if error */ }
-    } else {
-      doc.fontSize(10).fillColor('#cccccc').text('LOGO', 50, headerY);
+        const logoPath = path.join(process.cwd(), invoice.company.logoUrl);
+        doc.image(logoPath, 50, headerY, { width: 100 });
+      } catch (e) {
+        console.error('Logo loading failed:', e);
+      }
     }
 
-    doc.fontSize(20).font('Helvetica-Bold').fillColor(primaryColor).text(invoice.company.name, 50, headerY + 70);
-    doc.fontSize(10).font('Helvetica').fillColor('#666666').text(invoice.company.address || '', 50, doc.y);
-    doc.text(`PIN: ${invoice.company.kraPin || 'N/A'}`);
-
     doc.fontSize(24).font('Helvetica-Bold').fillColor(primaryColor).text(formatInvoiceType(invoice.type), 300, headerY, { align: 'right' });
-    doc.fontSize(10).font('Helvetica-Bold').fillColor('#000000').text(`# ${invoice.invoiceNumber}`, 300, doc.y, { align: 'right' });
-    doc.fontSize(10).font('Helvetica').fillColor('#666666').text(`Date: ${invoice.issueDate.toLocaleDateString()}`, 300, doc.y, { align: 'right' });
-    if (invoice.dueDate) doc.text(`Due: ${invoice.dueDate.toLocaleDateString()}`, 300, doc.y, { align: 'right' });
+
+    doc.fontSize(14).font('Helvetica-Bold').fillColor('#000000').text(invoice.company.name, 300, doc.y, { align: 'right' });
+    doc.fontSize(9).font('Helvetica').fillColor('#000000').text(invoice.company.address || '', 300, doc.y, { align: 'right' });
+    doc.text(`T: ${invoice.company.phone || ''}`, 300, doc.y, { align: 'right' });
+    doc.text(`Email: ${invoice.company.email || ''}`, 300, doc.y, { align: 'right' });
+    doc.text(`PIN: ${invoice.company.kraPin || ''}`, 300, doc.y, { align: 'right' });
+
+    doc.moveDown();
+    doc.fontSize(10).text(`Quotation No:`, 300, doc.y, { continued: true, align: 'right' });
+    doc.font('Helvetica-Bold').text(`  ${invoice.invoiceNumber}`, { align: 'right' });
+    doc.font('Helvetica').text(`Invoice Date:`, 300, doc.y, { continued: true, align: 'right' });
+    doc.text(`  ${invoice.issueDate.toLocaleDateString()}`, { align: 'right' });
+    if (invoice.dueDate) {
+      doc.text(`Due Date:`, 300, doc.y, { continued: true, align: 'right' });
+      doc.text(`  ${invoice.dueDate.toLocaleDateString()}`, { align: 'right' });
+    }
 
     // Customer
     doc.moveDown(2);
     const billToY = doc.y;
-    doc.rect(50, billToY, 500, 1).fill('#eeeeee');
-    doc.moveDown();
-    doc.fontSize(8).font('Helvetica-Bold').fillColor('#999999').text('BILL TO');
+    doc.fontSize(10).font('Helvetica').fillColor('#000000').text('Bill to:');
+    doc.moveDown(0.5);
 
     const clientName = invoice.customer?.name || invoice.securityClient?.name || 'N/A';
     const clientPhone = invoice.customer?.phone || invoice.securityClient?.phone || '';
     const clientEmail = invoice.customer?.email || invoice.securityClient?.email || '';
     const clientAddress = invoice.customer?.physicalAddress || invoice.securityClient?.address || '';
 
-    doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000').text(clientName);
-    doc.fontSize(10).font('Helvetica').fillColor('#666666').text(clientPhone);
-    doc.text(clientEmail);
-    doc.text(clientAddress);
+    doc.fontSize(11).font('Helvetica-Bold').fillColor('#000000').text(clientName.toUpperCase());
+    if (invoice.customer?.idNumber) {
+      doc.fontSize(10).text(`ID: ${invoice.customer.idNumber}`);
+    }
+    doc.fontSize(10).font('Helvetica').text(clientAddress);
 
     // Line items table
     doc.moveDown(2);
     const tableTop = doc.y;
-    doc.rect(50, tableTop, 500, 20).fill(primaryColor);
-    doc.fontSize(10).font('Helvetica-Bold').fillColor('#FFFFFF');
-    doc.text('Description', 60, tableTop + 5);
-    doc.text('Qty', 300, tableTop + 5);
-    doc.text('Unit Price', 350, tableTop + 5, { width: 80, align: 'right' });
-    doc.text('Total', 450, tableTop + 5, { width: 80, align: 'right' });
 
-    let y = tableTop + 25;
-    doc.font('Helvetica').fillColor('#000000');
+    // Draw table header
+    doc.rect(50, tableTop, 500, 20).fill('#d9ead3').stroke('#000000');
+    doc.fillColor('#000000').font('Helvetica-Bold').fontSize(10);
+    doc.text('Details', 55, tableTop + 5, { width: 220, align: 'center' });
+    doc.text('Quantity', 275, tableTop + 5, { width: 80, align: 'center' });
+    doc.text('Unit Price', 355, tableTop + 5, { width: 90, align: 'center' });
+    doc.text('Amount', 445, tableTop + 5, { width: 100, align: 'center' });
+
+    let y = tableTop + 20;
+    doc.font('Helvetica').fontSize(10);
+
     for (const line of invoice.lines) {
-      doc.text(line.description, 60, y, { width: 230 });
-      doc.text(String(line.quantity), 300, y);
-      doc.text(Number(line.unitPrice).toLocaleString(), 350, y, { width: 80, align: 'right' });
-      doc.text(Number(line.total).toLocaleString(), 450, y, { width: 80, align: 'right' });
-      y = doc.y + 10;
-      doc.rect(50, y - 5, 500, 0.5).fill('#eeeeee');
+      const rowHeight = Math.max(25, doc.heightOfString(line.description, { width: 210 }) + 10);
+
+      doc.rect(50, y, 225, rowHeight).stroke();
+      doc.rect(275, y, 80, rowHeight).stroke();
+      doc.rect(355, y, 90, rowHeight).stroke();
+      doc.rect(445, y, 105, rowHeight).stroke();
+
+      doc.text(line.description, 60, y + 7, { width: 210 });
+      doc.text(String(line.quantity), 275, y + 7, { width: 80, align: 'center' });
+      doc.text(Number(line.unitPrice).toLocaleString(), 355, y + 7, { width: 85, align: 'right' });
+      doc.text(Number(line.total).toLocaleString(undefined, { minimumFractionDigits: 2 }), 445, y + 7, { width: 100, align: 'right' });
+
+      y += rowHeight;
     }
 
-    // Totals
-    doc.moveDown();
-    y = doc.y + 20;
-    const totalsX = 300;
-    doc.fontSize(10).fillColor('#666666').text('Subtotal', totalsX, y);
-    doc.fillColor('#000000').text(`KES ${Number(invoice.subtotal).toLocaleString()}`, 400, y, { align: 'right' });
+    // Total row
+    doc.rect(355, y, 90, 25).fill('#d9ead3').stroke('#000000');
+    doc.rect(445, y, 105, 25).fill('#d9ead3').stroke('#000000');
+    doc.fillColor('#000000').font('Helvetica-Bold');
+    doc.text('Total', 360, y + 7, { width: 80, align: 'center' });
+    doc.text(`KES ${Number(invoice.totalAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 445, y + 7, { width: 100, align: 'right' });
 
-    y += 20;
-    doc.fillColor('#666666').text('VAT (16%)', totalsX, y);
-    doc.fillColor('#000000').text(`KES ${Number(invoice.taxAmount).toLocaleString()}`, 400, y, { align: 'right' });
+    // Terms and Bank Details
+    y += 40;
+    doc.fontSize(10).font('Helvetica-Bold').text('Terms & Conditions', 50, y, { underline: true });
+    doc.font('Helvetica').fontSize(9);
+    doc.text('Prices quoted in Kenya Shilling (KES)', 50, y + 15);
+    doc.text('Payment due within 30 Days', 50, y + 27);
 
-    y += 25;
-    doc.rect(totalsX, y - 5, 250, 1).fill('#eeeeee');
-    doc.fontSize(14).font('Helvetica-Bold').fillColor(primaryColor).text('Total', totalsX, y);
-    doc.text(`KES ${Number(invoice.totalAmount).toLocaleString()}`, 400, y, { align: 'right' });
+    y += 50;
+    // Bank Details Table
+    const bankTableWidth = 250;
+    doc.rect(50, y, bankTableWidth, 15).stroke();
+    doc.font('Helvetica-Bold').text('Bank Details:', 55, y + 3, { width: bankTableWidth - 10, align: 'center' });
 
-    if (Number(invoice.amountPaid) > 0) {
-      y += 30;
-      doc.fontSize(10).font('Helvetica-Bold').fillColor('#15803d').text('Amount Paid', totalsX, y);
-      doc.text(`KES ${Number(invoice.amountPaid).toLocaleString()}`, 400, y, { align: 'right' });
+    const bankDetails = [
+      ['Account Name', invoice.company.legalName],
+      ['Account Number', '3012099542002'],
+      ['Bank Name', 'Kingdom Bank'],
+      ['Branch Name', 'Thika'],
+      ['Branch Code', '301']
+    ];
 
-      y += 20;
-      doc.rect(totalsX, y - 5, 250, 1).fill('#eeeeee');
-      doc.fillColor('#000000').text('Balance Due', totalsX, y);
-      doc.text(`KES ${(Number(invoice.totalAmount) - Number(invoice.amountPaid)).toLocaleString()}`, 400, y, { align: 'right' });
+    let bankY = y + 15;
+    for (const [label, value] of bankDetails) {
+      doc.rect(50, bankY, bankTableWidth, 15).stroke();
+      doc.font('Helvetica-Bold').text(`${label}: `, 55, bankY + 3, { continued: true });
+      doc.font('Helvetica').text(value);
+      bankY += 15;
     }
 
-    // Notes
-    if (invoice.notes) {
-      doc.moveDown(1.5);
-      doc.rect(50, doc.y, 500, 1).fill('#eeeeee');
-      doc.moveDown();
-      doc.fontSize(8).font('Helvetica-Bold').fillColor('#999999').text('NOTES & TERMS');
-      doc.moveDown(0.5);
-      doc.fontSize(9).font('Helvetica').fillColor('#666666').text(invoice.notes, { width: 500, lineGap: 2 });
+    // MPESA Details Table
+    y = bankY + 20;
+    doc.rect(50, y, bankTableWidth, 15).stroke();
+    doc.font('Helvetica-Bold').text('MPESA Details', 55, y + 3, { width: bankTableWidth - 10, align: 'center' });
+
+    const mpesaDetails = [
+      ['MPESA Paybill', '529901'],
+      ['Account Number', '062015'],
+      ['Account Name', invoice.company.legalName]
+    ];
+
+    let mpesaY = y + 15;
+    for (const [label, value] of mpesaDetails) {
+      doc.rect(50, mpesaY, bankTableWidth, 15).stroke();
+      doc.font('Helvetica-Bold').text(`${label}: `, 55, mpesaY + 3, { continued: true });
+      doc.font('Helvetica').text(value);
+      mpesaY += 15;
     }
+
+    // Footer
+    doc.moveTo(50, 750).lineTo(550, 750).stroke(primaryColor);
+    doc.fontSize(10).font('Helvetica-Bold').fillColor(primaryColor);
+    doc.text(`For Jolu, With Jolu & Always Jolu`, 50, 765, { align: 'center' });
 
     doc.end();
 

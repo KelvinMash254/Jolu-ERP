@@ -81,7 +81,13 @@ router.post('/', requirePermission('invoices', 'create'), async (req: AuthReques
         req.companyId!,
         `Revenue Recognition - ${inv.invoiceNumber}`,
         journalLines,
-        { reference: inv.invoiceNumber, sourceType: 'INVOICE', sourceId: inv.id, createdBy: req.user?.id }
+        {
+          reference: inv.invoiceNumber,
+          sourceType: 'INVOICE',
+          sourceId: inv.id,
+          createdBy: req.user?.id,
+          tx
+        }
       );
 
       return await tx.invoice.update({

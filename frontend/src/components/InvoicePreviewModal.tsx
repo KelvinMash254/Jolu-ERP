@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X, Download, Send, Palette } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { invoiceApi } from '../services/api';
-import { formatCurrency, StatusBadge, LoadingSpinner } from './ui/Shared';
+import { StatusBadge, LoadingSpinner } from './ui/Shared';
 import toast from 'react-hot-toast';
 
 interface InvoicePreviewModalProps {

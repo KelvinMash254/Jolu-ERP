@@ -105,6 +105,9 @@ export interface MachineryUnit {
   brand: string;
   model: string;
   serialNumber?: string;
+  chassisNumber?: string;
+  engineNumber?: string;
+  registrationNumber?: string;
   stockStatus: string;
   costPrice: number;
   sellingPrice: number;
