@@ -59,7 +59,7 @@ export const invoiceApi = {
   getOne: (id: string) => api.get(`/invoices/${id}`),
   create: (data: object) => api.post('/invoices', data),
   generatePdf: (id: string, options?: object) => api.post(`/invoices/${id}/pdf`, options),
-  send: (id: string) => api.post(`/invoices/${id}/send`),
+  send: (id: string, options?: object) => api.post(`/invoices/${id}/send`, options),
 };
 
 export const accountingApi = {

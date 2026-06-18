@@ -20,7 +20,7 @@ const COLORS = [
 ];
 
 export default function InvoicePreviewModal({ isOpen, onClose, invoiceId }: InvoicePreviewModalProps) {
-  const [primaryColor, setPrimaryColor] = useState('#0ea5e9');
+  const [primaryColor, setPrimaryColor] = useState('#15803d');
 
   const { data: invoiceData, isLoading } = useQuery({
     queryKey: ['invoice', invoiceId],
@@ -37,7 +37,7 @@ export default function InvoicePreviewModal({ isOpen, onClose, invoiceId }: Invo
   });
 
   const sendEmailMutation = useMutation({
-    mutationFn: () => invoiceApi.send(invoiceId),
+    mutationFn: (color: string) => invoiceApi.send(invoiceId, { primaryColor: color }),
     onSuccess: () => {
       toast.success('Invoice sent to customer');
       onClose();
@@ -75,7 +75,8 @@ export default function InvoicePreviewModal({ isOpen, onClose, invoiceId }: Invo
                     <button
                       key={color.value}
                       onClick={() => setPrimaryColor(color.value)}
-                      className={`w-8 h-8 rounded-full border-2 ${primaryColor === color.value ? 'border-gray-900' : 'border-transparent'}`}
+                      disabled={invoice?.status !== 'DRAFT'}
+                      className={`w-8 h-8 rounded-full border-2 ${primaryColor === color.value ? 'border-gray-900' : 'border-transparent'} disabled:opacity-50`}
                       style={{ backgroundColor: color.value }}
                       title={color.name}
                     />
@@ -86,7 +87,8 @@ export default function InvoicePreviewModal({ isOpen, onClose, invoiceId }: Invo
                     type="color"
                     value={primaryColor}
                     onChange={(e) => setPrimaryColor(e.target.value)}
-                    className="w-full h-10 p-1 rounded border bg-white"
+                    disabled={invoice?.status !== 'DRAFT'}
+                    className="w-full h-10 p-1 rounded border bg-white disabled:opacity-50"
                   />
                 </div>
               </div>
@@ -101,14 +103,17 @@ export default function InvoicePreviewModal({ isOpen, onClose, invoiceId }: Invo
                 <Download className="w-4 h-4" />
                 {generatePdfMutation.isPending ? 'Generating...' : 'Download PDF'}
               </button>
-              <button
-                onClick={() => sendEmailMutation.mutate()}
-                disabled={sendEmailMutation.isPending || !invoice?.customer?.email}
-                className="w-full flex items-center justify-center gap-2 py-2.5 bg-jolu-600 text-white rounded-lg text-sm font-medium hover:bg-jolu-700 transition-colors disabled:opacity-50"
-              >
-                <Send className="w-4 h-4" />
-                {sendEmailMutation.isPending ? 'Sending...' : 'Send to Customer'}
-              </button>
+              {invoice?.status === 'DRAFT' && (
+                <button
+                  onClick={() => sendEmailMutation.mutate(primaryColor)}
+                  disabled={sendEmailMutation.isPending || !invoice?.customer?.email}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: primaryColor }}
+                >
+                  <Send className="w-4 h-4" />
+                  {sendEmailMutation.isPending ? 'Sending...' : 'Send to Customer'}
+                </button>
+              )}
               {!invoice?.customer?.email && invoice && (
                 <p className="text-[10px] text-amber-600 text-center">Customer email missing</p>
               )}
@@ -118,93 +123,92 @@ export default function InvoicePreviewModal({ isOpen, onClose, invoiceId }: Invo
           {/* Preview Panel */}
           <div className="flex-1 bg-gray-200 p-8 overflow-y-auto flex justify-center">
             {isLoading || !invoice ? <LoadingSpinner /> : (
-              <div className="bg-white w-full max-w-[210mm] shadow-lg p-[20mm] min-h-[297mm] flex flex-col">
-                <div className="flex justify-between items-start mb-12">
-                  <div>
-                    <h1 className="text-3xl font-bold mb-2" style={{ color: primaryColor }}>{invoice.company.name}</h1>
+              <div className="bg-white w-[210mm] shadow-lg p-[20mm] min-h-[297mm] flex flex-col font-sans">
+                <div className="flex justify-between items-start mb-8">
+                  <div className="flex flex-col">
+                    <div className="w-24 h-24 mb-4 bg-gray-100 flex items-center justify-center text-gray-400">
+                      {invoice.company.logoUrl ? <img src={invoice.company.logoUrl} alt="logo" className="max-w-full max-h-full" /> : 'LOGO'}
+                    </div>
+                    <h1 className="text-3xl font-bold" style={{ color: primaryColor }}>{invoice.company.name}</h1>
                     <p className="text-sm text-gray-600">{invoice.company.address}</p>
                     <p className="text-sm text-gray-600">PIN: {invoice.company.kraPin}</p>
                   </div>
                   <div className="text-right">
-                    <h2 className="text-xl font-bold uppercase tracking-widest mb-2" style={{ color: primaryColor }}>
+                    <h2 className="text-3xl font-bold uppercase mb-2" style={{ color: primaryColor }}>
                       {invoice.type.replace(/_/g, ' ')}
                     </h2>
-                    <p className="text-sm font-medium"># {invoice.invoiceNumber}</p>
+                    <p className="text-sm font-bold"># {invoice.invoiceNumber}</p>
                     <p className="text-sm text-gray-600">Date: {new Date(invoice.issueDate).toLocaleDateString()}</p>
                     {invoice.dueDate && <p className="text-sm text-gray-600">Due: {new Date(invoice.dueDate).toLocaleDateString()}</p>}
                   </div>
                 </div>
 
-                <div className="mb-12">
-                  <h3 className="text-xs font-bold uppercase text-gray-400 mb-2 border-b pb-1">Bill To</h3>
-                  <p className="font-bold">{invoice.customer?.name || invoice.securityClient?.name}</p>
-                  {invoice.customer && (
-                    <>
-                      <p className="text-sm text-gray-600">{invoice.customer.phone}</p>
-                      <p className="text-sm text-gray-600">{invoice.customer.email}</p>
-                      <p className="text-sm text-gray-600">{invoice.customer.physicalAddress}</p>
-                    </>
-                  )}
+                <div className="mb-8 mt-4 border-t pt-4">
+                  <h3 className="text-xs font-bold uppercase text-gray-400 mb-2">Bill To</h3>
+                  <p className="font-bold text-lg">{invoice.customer?.name || invoice.securityClient?.name}</p>
+                  <p className="text-sm text-gray-600">{invoice.customer?.phone || invoice.securityClient?.phone}</p>
+                  <p className="text-sm text-gray-600">{invoice.customer?.email || invoice.securityClient?.email}</p>
+                  <p className="text-sm text-gray-600">{invoice.customer?.physicalAddress || invoice.securityClient?.address}</p>
                 </div>
 
                 <div className="flex-1">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-white" style={{ backgroundColor: primaryColor }}>
-                        <th className="py-2 px-4 text-left rounded-l">Description</th>
+                        <th className="py-2 px-4 text-left">Description</th>
                         <th className="py-2 px-4 text-center">Qty</th>
                         <th className="py-2 px-4 text-right">Unit Price</th>
-                        <th className="py-2 px-4 text-right rounded-r">Total</th>
+                        <th className="py-2 px-4 text-right">Total</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y">
+                    <tbody className="divide-y border-b">
                       {(invoice.lines || []).map((line: any) => (
                         <tr key={line.id}>
                           <td className="py-4 px-4">{line.description}</td>
                           <td className="py-4 px-4 text-center">{Number(line.quantity)}</td>
-                          <td className="py-4 px-4 text-right">{Number(line.unitPrice).toLocaleString()}</td>
-                          <td className="py-4 px-4 text-right font-medium">{Number(line.total).toLocaleString()}</td>
+                          <td className="py-4 px-4 text-right font-mono">{Number(line.unitPrice).toLocaleString()}</td>
+                          <td className="py-4 px-4 text-right font-mono font-bold">{Number(line.total).toLocaleString()}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
 
-                <div className="mt-12 flex justify-end">
-                  <div className="w-64 space-y-2">
+                <div className="mt-6 flex justify-end">
+                  <div className="w-80 space-y-3">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Subtotal</span>
-                      <span>{formatCurrency(Number(invoice.subtotal))}</span>
+                      <span className="text-gray-500 font-medium">Subtotal</span>
+                      <span className="font-mono">KES {Number(invoice.subtotal).toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">VAT (16%)</span>
-                      <span>{formatCurrency(Number(invoice.taxAmount))}</span>
+                    <div className="flex justify-between text-sm border-b pb-2">
+                      <span className="text-gray-500 font-medium">VAT (16%)</span>
+                      <span className="font-mono">KES {Number(invoice.taxAmount).toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between text-lg font-bold border-t pt-2" style={{ color: primaryColor }}>
+                    <div className="flex justify-between text-xl font-bold pt-2" style={{ color: primaryColor }}>
                       <span>Total</span>
-                      <span>{formatCurrency(Number(invoice.totalAmount))}</span>
+                      <span className="font-mono">KES {Number(invoice.totalAmount).toLocaleString()}</span>
                     </div>
                     {Number(invoice.amountPaid) > 0 && (
                       <>
-                        <div className="flex justify-between text-sm text-green-600">
+                        <div className="flex justify-between text-sm text-green-600 font-medium pt-4">
                           <span>Amount Paid</span>
-                          <span>{formatCurrency(Number(invoice.amountPaid))}</span>
+                          <span className="font-mono">KES {Number(invoice.amountPaid).toLocaleString()}</span>
                         </div>
-                        <div className="flex justify-between text-sm font-bold border-t border-gray-100 pt-1">
+                        <div className="flex justify-between text-sm font-bold border-t border-gray-100 pt-2">
                           <span>Balance Due</span>
-                          <span>{formatCurrency(Number(invoice.totalAmount) - Number(invoice.amountPaid))}</span>
+                          <span className="font-mono">KES {(Number(invoice.totalAmount) - Number(invoice.amountPaid)).toLocaleString()}</span>
                         </div>
                       </>
                     )}
                   </div>
                 </div>
 
-                {invoice.notes && (
-                  <div className="mt-12 pt-12 border-t">
-                    <h4 className="text-xs font-bold uppercase text-gray-400 mb-2">Notes & Terms</h4>
-                    <p className="text-xs text-gray-600 whitespace-pre-wrap">{invoice.notes}</p>
+                <div className="mt-8 pt-8 border-t">
+                  <h4 className="text-xs font-bold uppercase text-gray-400 mb-3">Notes & Terms</h4>
+                  <div className="text-[11px] text-gray-600 whitespace-pre-wrap leading-relaxed bg-gray-50 p-4 rounded-lg">
+                    {invoice.notes}
                   </div>
-                )}
+                </div>
               </div>
             )}
           </div>

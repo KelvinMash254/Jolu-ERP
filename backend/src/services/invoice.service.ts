@@ -32,62 +32,104 @@ export async function generateInvoicePDF(invoiceId: string, options: PDFOptions 
   const primaryColor = options.primaryColor || '#0ea5e9'; // Default Jolu blue
 
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 50 });
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
     const stream = fs.createWriteStream(filePath);
     doc.pipe(stream);
 
     // Header
-    doc.fontSize(20).fillColor(primaryColor).text(invoice.company.name, { align: 'left' });
-    doc.fontSize(10).fillColor('#000000').text(invoice.company.address || '', { align: 'left' });
-    doc.text(`KRA PIN: ${invoice.company.kraPin || 'N/A'}`);
-    doc.moveDown();
+    const headerY = 50;
+    if (invoice.company.logoUrl) {
+      // Note: In a real environment we would need to handle image loading (fetch or local path)
+      // For now we assume the logo is accessible or we skip it if it fails
+      try {
+        doc.image(invoice.company.logoUrl, 50, headerY, { width: 60 });
+      } catch (e) { /* skip logo if error */ }
+    } else {
+      doc.fontSize(10).fillColor('#cccccc').text('LOGO', 50, headerY);
+    }
 
-    doc.fontSize(16).fillColor(primaryColor).text(formatInvoiceType(invoice.type), { align: 'right' });
-    doc.fontSize(10).fillColor('#000000').text(`# ${invoice.invoiceNumber}`, { align: 'right' });
-    doc.text(`Date: ${invoice.issueDate.toLocaleDateString()}`, { align: 'right' });
-    if (invoice.dueDate) doc.text(`Due: ${invoice.dueDate.toLocaleDateString()}`, { align: 'right' });
-    doc.moveDown();
+    doc.fontSize(20).font('Helvetica-Bold').fillColor(primaryColor).text(invoice.company.name, 50, headerY + 70);
+    doc.fontSize(10).font('Helvetica').fillColor('#666666').text(invoice.company.address || '', 50, doc.y);
+    doc.text(`PIN: ${invoice.company.kraPin || 'N/A'}`);
+
+    doc.fontSize(24).font('Helvetica-Bold').fillColor(primaryColor).text(formatInvoiceType(invoice.type), 300, headerY, { align: 'right' });
+    doc.fontSize(10).font('Helvetica-Bold').fillColor('#000000').text(`# ${invoice.invoiceNumber}`, 300, doc.y, { align: 'right' });
+    doc.fontSize(10).font('Helvetica').fillColor('#666666').text(`Date: ${invoice.issueDate.toLocaleDateString()}`, 300, doc.y, { align: 'right' });
+    if (invoice.dueDate) doc.text(`Due: ${invoice.dueDate.toLocaleDateString()}`, 300, doc.y, { align: 'right' });
 
     // Customer
-    const clientName = invoice.customer?.name || invoice.securityClient?.name || 'N/A';
-    doc.fontSize(12).text('Bill To:', { underline: true });
-    doc.fontSize(10).text(clientName);
-    if (invoice.customer) {
-      doc.text(invoice.customer.phone);
-      if (invoice.customer.email) doc.text(invoice.customer.email);
-      if (invoice.customer.physicalAddress) doc.text(invoice.customer.physicalAddress);
-    }
+    doc.moveDown(2);
+    const billToY = doc.y;
+    doc.rect(50, billToY, 500, 1).fill('#eeeeee');
     doc.moveDown();
+    doc.fontSize(8).font('Helvetica-Bold').fillColor('#999999').text('BILL TO');
+
+    const clientName = invoice.customer?.name || invoice.securityClient?.name || 'N/A';
+    const clientPhone = invoice.customer?.phone || invoice.securityClient?.phone || '';
+    const clientEmail = invoice.customer?.email || invoice.securityClient?.email || '';
+    const clientAddress = invoice.customer?.physicalAddress || invoice.securityClient?.address || '';
+
+    doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000').text(clientName);
+    doc.fontSize(10).font('Helvetica').fillColor('#666666').text(clientPhone);
+    doc.text(clientEmail);
+    doc.text(clientAddress);
 
     // Line items table
+    doc.moveDown(2);
     const tableTop = doc.y;
     doc.rect(50, tableTop, 500, 20).fill(primaryColor);
     doc.fontSize(10).font('Helvetica-Bold').fillColor('#FFFFFF');
     doc.text('Description', 60, tableTop + 5);
     doc.text('Qty', 300, tableTop + 5);
-    doc.text('Unit Price', 350, tableTop + 5);
-    doc.text('Total', 450, tableTop + 5);
-    doc.font('Helvetica').fillColor('#000000');
+    doc.text('Unit Price', 350, tableTop + 5, { width: 80, align: 'right' });
+    doc.text('Total', 450, tableTop + 5, { width: 80, align: 'right' });
 
     let y = tableTop + 25;
+    doc.font('Helvetica').fillColor('#000000');
     for (const line of invoice.lines) {
-      doc.text(line.description, 50, y, { width: 240 });
+      doc.text(line.description, 60, y, { width: 230 });
       doc.text(String(line.quantity), 300, y);
-      doc.text(Number(line.unitPrice).toLocaleString(), 350, y);
-      doc.text(Number(line.total).toLocaleString(), 450, y);
-      y += 20;
+      doc.text(Number(line.unitPrice).toLocaleString(), 350, y, { width: 80, align: 'right' });
+      doc.text(Number(line.total).toLocaleString(), 450, y, { width: 80, align: 'right' });
+      y = doc.y + 10;
+      doc.rect(50, y - 5, 500, 0.5).fill('#eeeeee');
     }
 
-    doc.moveDown(2);
-    y = Math.max(y + 20, doc.y);
-    doc.text(`Subtotal: KES ${Number(invoice.subtotal).toLocaleString()}`, 350, y, { align: 'right' });
-    doc.text(`VAT (16%): KES ${Number(invoice.taxAmount).toLocaleString()}`, 350, y + 15, { align: 'right' });
-    doc.font('Helvetica-Bold').text(`Total: KES ${Number(invoice.totalAmount).toLocaleString()}`, 350, y + 30, { align: 'right' });
-    doc.font('Helvetica');
+    // Totals
+    doc.moveDown();
+    y = doc.y + 20;
+    const totalsX = 300;
+    doc.fontSize(10).fillColor('#666666').text('Subtotal', totalsX, y);
+    doc.fillColor('#000000').text(`KES ${Number(invoice.subtotal).toLocaleString()}`, 400, y, { align: 'right' });
+
+    y += 20;
+    doc.fillColor('#666666').text('VAT (16%)', totalsX, y);
+    doc.fillColor('#000000').text(`KES ${Number(invoice.taxAmount).toLocaleString()}`, 400, y, { align: 'right' });
+
+    y += 25;
+    doc.rect(totalsX, y - 5, 250, 1).fill('#eeeeee');
+    doc.fontSize(14).font('Helvetica-Bold').fillColor(primaryColor).text('Total', totalsX, y);
+    doc.text(`KES ${Number(invoice.totalAmount).toLocaleString()}`, 400, y, { align: 'right' });
 
     if (Number(invoice.amountPaid) > 0) {
-      doc.text(`Amount Paid: KES ${Number(invoice.amountPaid).toLocaleString()}`, 350, y + 50, { align: 'right' });
-      doc.text(`Balance Due: KES ${(Number(invoice.totalAmount) - Number(invoice.amountPaid)).toLocaleString()}`, 350, y + 65, { align: 'right' });
+      y += 30;
+      doc.fontSize(10).font('Helvetica-Bold').fillColor('#15803d').text('Amount Paid', totalsX, y);
+      doc.text(`KES ${Number(invoice.amountPaid).toLocaleString()}`, 400, y, { align: 'right' });
+
+      y += 20;
+      doc.rect(totalsX, y - 5, 250, 1).fill('#eeeeee');
+      doc.fillColor('#000000').text('Balance Due', totalsX, y);
+      doc.text(`KES ${(Number(invoice.totalAmount) - Number(invoice.amountPaid)).toLocaleString()}`, 400, y, { align: 'right' });
+    }
+
+    // Notes
+    if (invoice.notes) {
+      doc.moveDown(1.5);
+      doc.rect(50, doc.y, 500, 1).fill('#eeeeee');
+      doc.moveDown();
+      doc.fontSize(8).font('Helvetica-Bold').fillColor('#999999').text('NOTES & TERMS');
+      doc.moveDown(0.5);
+      doc.fontSize(9).font('Helvetica').fillColor('#666666').text(invoice.notes, { width: 500, lineGap: 2 });
     }
 
     doc.end();
