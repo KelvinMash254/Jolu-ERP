@@ -1,19 +1,45 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { invoiceApi } from '../services/api';
 import { PageHeader, LoadingSpinner, StatusBadge, formatCurrency } from '../components/ui/Shared';
+import InvoiceModal from '../components/InvoiceModal';
+import InvoicePreviewModal from '../components/InvoicePreviewModal';
 import type { Invoice } from '../types';
 
 export default function InvoicesPage() {
+  const queryClient = useQueryClient();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+
   const { data, isLoading } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => invoiceApi.getAll(),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data: any) => invoiceApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      setIsModalOpen(false);
+    },
   });
 
   const invoices = (data?.data?.data || []) as Invoice[];
 
   return (
     <div>
-      <PageHeader title="Invoices" subtitle="Proforma, tax invoices, receipts, and quotations" actions={<button className="btn-primary">Create Invoice</button>} />
+      <PageHeader 
+        title="Invoices" 
+        subtitle="Proforma, tax invoices, receipts, and quotations" 
+        actions={
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="btn-primary"
+          >
+            Create Invoice
+          </button>
+        } 
+      />
 
       <div className="p-8">
         {isLoading ? <LoadingSpinner /> : (
@@ -31,7 +57,11 @@ export default function InvoicesPage() {
               </thead>
               <tbody>
                 {invoices.map((inv) => (
-                  <tr key={inv.id} className="border-t hover:bg-gray-50">
+                  <tr 
+                    key={inv.id} 
+                    className="border-t hover:bg-gray-50 cursor-pointer"
+                    onClick={() => setPreviewId(inv.id)}
+                  >
                     <td className="px-6 py-4 font-medium">{inv.invoiceNumber}</td>
                     <td className="px-6 py-4">{inv.type.replace(/_/g, ' ')}</td>
                     <td className="px-6 py-4">{inv.customer?.name || '-'}</td>
@@ -46,6 +76,20 @@ export default function InvoicesPage() {
           </div>
         )}
       </div>
+
+      <InvoiceModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onSubmit={(data) => createMutation.mutate(data)}
+      />
+
+      {previewId && (
+        <InvoicePreviewModal
+          isOpen={!!previewId}
+          onClose={() => { setPreviewId(null); queryClient.invalidateQueries({ queryKey: ['invoices'] }); }}
+          invoiceId={previewId}
+        />
+      )}
     </div>
   );
 }

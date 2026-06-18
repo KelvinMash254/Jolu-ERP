@@ -39,8 +39,16 @@ export async function createJournalEntry(
   companyId: string,
   description: string,
   lines: JournalLineInput[],
-  options?: { reference?: string; sourceType?: string; sourceId?: string; createdBy?: string; autoPost?: boolean }
+  options?: { 
+    reference?: string; 
+    sourceType?: string; 
+    sourceId?: string; 
+    createdBy?: string; 
+    autoPost?: boolean;
+    tx?: any;
+  }
 ) {
+  const db = options?.tx || prisma;
   const totalDebit = lines.reduce((sum, l) => sum + (l.debit || 0), 0);
   const totalCredit = lines.reduce((sum, l) => sum + (l.credit || 0), 0);
 
@@ -48,16 +56,16 @@ export async function createJournalEntry(
     throw new Error(`Journal entry not balanced: debit=${totalDebit}, credit=${totalCredit}`);
   }
 
-  const count = await prisma.journalEntry.count({ where: { companyId } });
+  const count = await db.journalEntry.count({ where: { companyId } });
   const entryNumber = `JE-${new Date().getFullYear()}-${String(count + 1).padStart(6, '0')}`;
 
-  const accounts = await prisma.chartOfAccount.findMany({
+  const accounts = await db.chartOfAccount.findMany({
     where: { companyId, code: { in: lines.map((l) => l.accountCode) } },
   });
 
-  const accountMap = new Map(accounts.map((a) => [a.code, a]));
+  const accountMap = new Map(accounts.map((a: any) => [a.code, a]));
 
-  const entry = await prisma.journalEntry.create({
+  const entry = await db.journalEntry.create({
     data: {
       companyId,
       entryNumber,
@@ -86,7 +94,7 @@ export async function createJournalEntry(
   if (options?.autoPost !== false) {
     for (const line of entry.lines) {
       const delta = new Decimal(line.debit).minus(line.credit);
-      await prisma.chartOfAccount.update({
+      await db.chartOfAccount.update({
         where: { id: line.accountId },
         data: { balance: { increment: delta } },
       });
