@@ -1,28 +1,95 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { securityApi } from '../services/api';
 import { PageHeader, LoadingSpinner, formatCurrency } from '../components/ui/Shared';
 import { useState } from 'react';
+import toast from 'react-hot-toast';
+import { Plus } from 'lucide-react';
 
 export default function SecurityPage() {
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<'clients' | 'contracts' | 'guards' | 'sites'>('clients');
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState<any>({});
 
   const { data: clients, isLoading: lc } = useQuery({ queryKey: ['sec-clients'], queryFn: () => securityApi.getClients(), enabled: tab === 'clients' });
   const { data: contracts, isLoading: lco } = useQuery({ queryKey: ['sec-contracts'], queryFn: () => securityApi.getContracts(), enabled: tab === 'contracts' });
   const { data: guards, isLoading: lg } = useQuery({ queryKey: ['sec-guards'], queryFn: () => securityApi.getGuards(), enabled: tab === 'guards' });
   const { data: sites, isLoading: ls } = useQuery({ queryKey: ['sec-sites'], queryFn: () => securityApi.getSites(), enabled: tab === 'sites' });
 
+  const createClientMutation = useMutation({
+    mutationFn: (data: any) => securityApi.createClient(data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['sec-clients'] }); setShowForm(false); toast.success('Client added'); },
+  });
+
+  const createContractMutation = useMutation({
+    mutationFn: (data: any) => securityApi.createContract(data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['sec-contracts'] }); setShowForm(false); toast.success('Contract added'); },
+  });
+
+  const createGuardMutation = useMutation({
+    mutationFn: (data: any) => securityApi.createGuard(data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['sec-guards'] }); setShowForm(false); toast.success('Guard added'); },
+  });
+
   const isLoading = lc || lco || lg || ls;
+
+  const handleAdd = () => {
+    if (tab === 'clients') createClientMutation.mutate(formData);
+    if (tab === 'contracts') createContractMutation.mutate(formData);
+    if (tab === 'guards') createGuardMutation.mutate(formData);
+  };
 
   return (
     <div>
-      <PageHeader title="Jolu Security Module" subtitle="Clients, contracts, guards, and deployments" />
+      <PageHeader
+        title="Jolu Security Module"
+        subtitle="Clients, contracts, guards, and deployments"
+        actions={
+          <button onClick={() => { setShowForm(true); setFormData({}); }} className="btn-primary flex items-center gap-2">
+            <Plus className="w-4 h-4" /> Add {tab.slice(0, -1)}
+          </button>
+        }
+      />
 
       <div className="p-8">
         <div className="flex gap-2 mb-6">
           {(['clients', 'contracts', 'guards', 'sites'] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 rounded-lg text-sm font-medium capitalize ${tab === t ? 'bg-jolu-600 text-white' : 'bg-white border'}`}>{t}</button>
+            <button key={t} onClick={() => { setTab(t); setShowForm(false); }} className={`px-4 py-2 rounded-lg text-sm font-medium capitalize ${tab === t ? 'bg-jolu-600 text-white' : 'bg-white border'}`}>{t}</button>
           ))}
         </div>
+
+        {showForm && (
+          <div className="card mb-6">
+            <h3 className="font-semibold mb-4 capitalize">New {tab.slice(0, -1)}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {tab === 'clients' && (
+                <>
+                  <div><label className="label">Name</label><input className="input" onChange={e => setFormData({...formData, name: e.target.value})} /></div>
+                  <div><label className="label">Phone</label><input className="input" onChange={e => setFormData({...formData, phone: e.target.value})} /></div>
+                </>
+              )}
+              {tab === 'contracts' && (
+                <>
+                  <div><label className="label">Client ID</label><input className="input" onChange={e => setFormData({...formData, clientId: e.target.value})} /></div>
+                  <div><label className="label">Monthly Fee</label><input className="input" type="number" onChange={e => setFormData({...formData, monthlyFee: Number(e.target.value)})} /></div>
+                  <div><label className="label">Start Date</label><input className="input" type="date" onChange={e => setFormData({...formData, startDate: new Date(e.target.value)})} /></div>
+                </>
+              )}
+              {tab === 'guards' && (
+                <>
+                  <div><label className="label">First Name</label><input className="input" onChange={e => setFormData({...formData, firstName: e.target.value})} /></div>
+                  <div><label className="label">Last Name</label><input className="input" onChange={e => setFormData({...formData, lastName: e.target.value})} /></div>
+                  <div><label className="label">Employee No</label><input className="input" onChange={e => setFormData({...formData, employeeNo: e.target.value})} /></div>
+                  <div><label className="label">Phone</label><input className="input" onChange={e => setFormData({...formData, phone: e.target.value})} /></div>
+                </>
+              )}
+            </div>
+            <div className="flex gap-3 mt-4">
+              <button onClick={handleAdd} className="btn-primary">Save</button>
+              <button onClick={() => setShowForm(false)} className="btn-secondary">Cancel</button>
+            </div>
+          </div>
+        )}
 
         {isLoading ? <LoadingSpinner /> : (
           <div className="card overflow-hidden p-0">

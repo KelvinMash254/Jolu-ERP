@@ -183,4 +183,32 @@ router.post('/reminders', requirePermission('crm', 'create'), async (req: AuthRe
   res.status(201).json({ success: true, data: reminder });
 });
 
+router.post('/leads/:id/convert', requirePermission('crm', 'update'), async (req: AuthRequest, res: Response) => {
+  const lead = await prisma.lead.findUnique({
+    where: { id: req.params.id },
+    include: { customer: true },
+  });
+
+  if (!lead) return res.status(404).json({ error: 'Lead not found' });
+
+  let customer = lead.customer;
+
+  if (!customer) {
+    // Create customer if it doesn't exist yet (though usually leads are attached to customers)
+    // If not, we might need more info. For now, assume lead has enough or it's already linked.
+    return res.status(400).json({ error: 'Lead must be linked to a customer to convert' });
+  }
+
+  const updatedLead = await prisma.lead.update({
+    where: { id: lead.id },
+    data: {
+      pipelineStage: 'WON',
+      stage: 'DELIVERED', // Or appropriate next stage
+      wonAt: new Date(),
+    }
+  });
+
+  res.json({ success: true, data: { lead: updatedLead, customer } });
+});
+
 export default router;

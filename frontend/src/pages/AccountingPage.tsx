@@ -9,7 +9,10 @@ export default function AccountingPage() {
   const { data: accounts, isLoading: la } = useQuery({ queryKey: ['coa'], queryFn: () => accountingApi.getChartOfAccounts(), enabled: tab === 'accounts' });
   const { data: journals, isLoading: lj } = useQuery({ queryKey: ['journals'], queryFn: () => accountingApi.getJournals(), enabled: tab === 'journals' });
   const { data: trialBalance, isLoading: lt } = useQuery({ queryKey: ['trial-balance'], queryFn: () => accountingApi.getTrialBalance(), enabled: tab === 'trial-balance' });
-  const { data: income, isLoading: li } = useQuery({ queryKey: ['income'], queryFn: () => accountingApi.getIncomeStatement(), enabled: tab === 'income' });
+  const { data: income, isLoading: li } = useQuery({ queryKey: ['income'], queryFn: () => accountingApi.getIncomeStatement({
+    startDate: new Date(new Date().getFullYear(), 0, 1).toISOString(),
+    endDate: new Date().toISOString(),
+  }), enabled: tab === 'income' });
   const { data: balanceSheet, isLoading: lb } = useQuery({ queryKey: ['balance-sheet'], queryFn: () => accountingApi.getBalanceSheet(), enabled: tab === 'balance-sheet' });
   const { data: receivables, isLoading: lr } = useQuery({ queryKey: ['receivables'], queryFn: () => accountingApi.getReceivables(), enabled: tab === 'receivables' });
 
