@@ -36,13 +36,14 @@ export default function InvoicePreviewModal({ isOpen, onClose, invoiceId }: Invo
     },
   });
 
-  const sendEmailMutation = useMutation({
-    mutationFn: (color: string) => invoiceApi.send(invoiceId, { primaryColor: color }),
-    onSuccess: () => {
-      toast.success('Invoice sent to customer');
-      onClose();
-    },
-  });
+const sendEmailMutation = useMutation({
+  mutationFn: () => invoiceApi.send(invoiceId),
+
+  onSuccess: () => {
+    toast.success('Invoice sent to customer');
+    onClose();
+  },
+});
 
   if (!isOpen) return null;
 
@@ -105,7 +106,7 @@ export default function InvoicePreviewModal({ isOpen, onClose, invoiceId }: Invo
               </button>
               {invoice?.status === 'DRAFT' && (
                 <button
-                  onClick={() => sendEmailMutation.mutate(primaryColor)}
+                  onClick={() => sendEmailMutation.mutate()}
                   disabled={sendEmailMutation.isPending || !invoice?.customer?.email}
                   className="w-full flex items-center justify-center gap-2 py-2.5 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                   style={{ backgroundColor: primaryColor }}
@@ -125,14 +126,59 @@ export default function InvoicePreviewModal({ isOpen, onClose, invoiceId }: Invo
             {isLoading || !invoice ? <LoadingSpinner /> : (
               <div className="bg-white w-[210mm] shadow-lg p-[20mm] min-h-[297mm] flex flex-col font-sans">
                 <div className="flex justify-between items-start mb-8">
-                  <div className="flex flex-col">
-                    <div className="w-24 h-24 mb-4 bg-gray-100 flex items-center justify-center text-gray-400">
-                      {invoice.company.logoUrl ? <img src={invoice.company.logoUrl} alt="logo" className="max-w-full max-h-full" /> : 'LOGO'}
-                    </div>
-                    <h1 className="text-3xl font-bold" style={{ color: primaryColor }}>{invoice.company.name}</h1>
-                    <p className="text-sm text-gray-600">{invoice.company.address}</p>
-                    <p className="text-sm text-gray-600">PIN: {invoice.company.kraPin}</p>
-                  </div>
+<div className="flex flex-col">
+
+<div className="w-32 h-32 mb-4 border rounded-lg bg-white overflow-hidden flex items-center justify-center shadow-sm">
+
+{invoice?.company?.logoUrl ? (
+
+<img
+
+src={invoice.company.logoUrl}
+
+alt="Company Logo"
+
+className="w-full h-full object-contain p-2"
+
+onLoad={() => console.log('Logo loaded successfully')}
+
+onError={(e) => {
+
+console.error('Logo failed:', invoice.company.logoUrl);
+
+e.currentTarget.style.display = 'none';
+
+}}
+
+/>
+
+) : (
+
+<span className="text-gray-400 text-sm font-medium">LOGO</span>
+
+)}
+
+</div>
+
+<h1 className="text-3xl font-bold" style={{ color: primaryColor }}>
+
+{invoice?.company?.name || 'Jolu Group'}
+
+</h1>
+
+<p className="text-sm text-gray-600">
+
+{invoice?.company?.address || ''}
+
+</p>
+
+<p className="text-sm text-gray-600">
+
+PIN: {invoice?.company?.kraPin || ''}
+
+</p>
+
+</div>
                   <div className="text-right">
                     <h2 className="text-3xl font-bold uppercase mb-2" style={{ color: primaryColor }}>
                       {invoice.type.replace(/_/g, ' ')}
