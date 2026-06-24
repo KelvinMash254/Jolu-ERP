@@ -90,7 +90,7 @@ export default function InvoiceModal({ isOpen, onClose, onSubmit }: InvoiceModal
                 className="w-full rounded-lg border-gray-300 shadow-sm focus:border-jolu-500 focus:ring-jolu-500"
               >
                 <option value="PROFORMA">Proforma Invoice</option>
-                <option value="TAX_INVOICE">Tax Invoice</option>
+                <option value="TAX_INVOICE">Invoice</option>
                 <option value="QUOTATION">Quotation</option>
                 <option value="DELIVERY_NOTE">Delivery Note</option>
                 <option value="RECEIPT">Receipt</option>

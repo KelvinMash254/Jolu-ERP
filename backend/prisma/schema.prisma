@@ -754,7 +754,7 @@ model JournalLine {
 
 enum InvoiceType {
   PROFORMA
-  TAX_INVOICE
+  INVOICE
   RECEIPT
   CREDIT_NOTE
   DEBIT_NOTE

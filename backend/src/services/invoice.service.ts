@@ -38,15 +38,27 @@ export async function generateInvoicePDF(invoiceId: string, options: PDFOptions 
     doc.pipe(stream);
 
     // Header
-    const headerY = 50;
-    if (invoice.company.logoUrl) {
-      try {
-        const logoPath = path.join(process.cwd(), invoice.company.logoUrl);
-        doc.image(logoPath, 50, headerY, { width: 100 });
-      } catch (e) {
-        console.error('Logo loading failed:', e);
-      }
-    }
+
+const headerY = 50;
+
+try {
+  const logoPath = path.join(
+    process.cwd(),
+    'uploads',
+    'logos',
+    'machineries.png'
+  );
+
+  if (fs.existsSync(logoPath)) {
+    doc.image(logoPath, 50, headerY, {
+      width: 140,
+    });
+  } else {
+    console.log('Logo not found:', logoPath);
+  }
+} catch (error) {
+  console.error('Logo loading failed:', error);
+}
 
     doc.fontSize(24).font('Helvetica-Bold').fillColor(primaryColor).text(formatInvoiceType(invoice.type), 300, headerY, { align: 'right' });
     
