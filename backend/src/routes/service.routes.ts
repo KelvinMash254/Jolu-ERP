@@ -28,8 +28,16 @@ router.post('/', requirePermission('aftersales', 'create'), async (req: AuthRequ
   const count = await prisma.serviceTicket.count({ where: { companyId: req.companyId! } });
   const ticketNumber = `SRV-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
 
+  const { customerId, machineryUnitId, vehicleId, problem } = req.body;
   const ticket = await prisma.serviceTicket.create({
-    data: { ...req.body, companyId: req.companyId!, ticketNumber },
+    data: {
+      customerId,
+      machineryUnitId,
+      vehicleId,
+      problem,
+      companyId: req.companyId!,
+      ticketNumber
+    },
   });
 
   res.status(201).json({ success: true, data: ticket });
