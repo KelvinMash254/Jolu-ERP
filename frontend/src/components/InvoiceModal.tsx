@@ -7,15 +7,16 @@ interface InvoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: any) => void;
+  initialData?: any;
 }
 
-export default function InvoiceModal({ isOpen, onClose, onSubmit }: InvoiceModalProps) {
-  const [type, setType] = useState('TAX_INVOICE');
-  const [customerId, setCustomerId] = useState('');
-  const [securityClientId, setSecurityClientId] = useState('');
-  const [dueDate, setDueDate] = useState('');
-  const [notes, setNotes] = useState('');
-  const [lines, setLines] = useState([{ description: '', quantity: 1, unitPrice: 0, taxRate: 16, total: 0 }]);
+export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }: InvoiceModalProps) {
+  const [type, setType] = useState(initialData?.type || 'TAX_INVOICE');
+  const [customerId, setCustomerId] = useState(initialData?.customerId || '');
+  const [securityClientId, setSecurityClientId] = useState(initialData?.securityClientId || '');
+  const [dueDate, setDueDate] = useState(initialData?.dueDate || '');
+  const [notes, setNotes] = useState(initialData?.notes || '');
+  const [lines, setLines] = useState(initialData?.lines || [{ description: '', quantity: 1, unitPrice: 0, taxRate: 16, total: 0 }]);
 
   const { data: customersData } = useQuery({
     queryKey: ['customers'],

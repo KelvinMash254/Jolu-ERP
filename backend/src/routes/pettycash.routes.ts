@@ -21,8 +21,14 @@ router.post('/accounts', requirePermission('pettycash', 'create'), async (req: A
 });
 
 router.post('/requests', requirePermission('pettycash', 'create'), async (req: AuthRequest, res: Response) => {
+  const { accountId, amount, purpose } = req.body;
   const request = await prisma.pettyCashRequest.create({
-    data: { ...req.body, requestedBy: req.user!.id },
+    data: {
+      accountId,
+      amount,
+      purpose,
+      requestedBy: req.user!.id
+    },
   });
   res.status(201).json({ success: true, data: request });
 });

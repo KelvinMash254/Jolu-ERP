@@ -42,6 +42,7 @@ export const crmApi = {
   getLeads: (params?: Record<string, string>) => api.get('/crm/leads', { params }),
   createLead: (data: object) => api.post('/crm/leads', data),
   updateLeadStage: (id: string, data: object) => api.patch(`/crm/leads/${id}/stage`, data),
+  convertLead: (id: string) => api.post(`/crm/leads/${id}/convert`),
   getKanban: () => api.get('/crm/pipeline/kanban'),
   getKpis: () => api.get('/crm/pipeline/kpis'),
 };
@@ -80,18 +81,29 @@ export const serviceApi = {
 
 export const securityApi = {
   getClients: () => api.get('/security/clients'),
+  createClient: (data: object) => api.post('/security/clients', data),
   getContracts: () => api.get('/security/contracts'),
+  createContract: (data: object) => api.post('/security/contracts', data),
   getGuards: () => api.get('/security/guards'),
+  createGuard: (data: object) => api.post('/security/guards', data),
   getSites: () => api.get('/security/sites'),
 };
 
 export const financingApi = {
-  getAll: () => api.get('/financing'),
+  getAll: (params?: Record<string, string>) => api.get('/financing', { params }),
   getDashboard: () => api.get('/financing/dashboard'),
+  create: (data: object) => api.post('/financing', data),
+  updateStage: (id: string, data: object) => api.patch(`/financing/${id}/stage`, data),
 };
 
 export const companiesApi = {
   getAll: () => api.get('/companies'),
+};
+
+export const importExportApi = {
+  import: (data: FormData) => api.post('/import-export/import', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  export: (entity: string, format: string) => api.get(`/import-export/export?entity=${entity}&format=${format}`),
+  getJobs: () => api.get('/import-export/jobs'),
 };
 
 export const notificationsApi = {
@@ -102,6 +114,9 @@ export const notificationsApi = {
 
 export const pettyCashApi = {
   getAccounts: () => api.get('/pettycash/accounts'),
+  createRequest: (data: object) => api.post('/pettycash/requests', data),
+  approveRequest: (id: string, status: string) => api.patch(`/pettycash/requests/${id}/approve`, { status }),
+  recordExpense: (data: object) => api.post('/pettycash/expenses', data),
 };
 
 export const mpesaApi = {

@@ -1,7 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
-import { crmApi } from '../services/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { crmApi, invoiceApi } from '../services/api';
 import { PageHeader, LoadingSpinner, formatCurrency } from '../components/ui/Shared';
 import type { Lead } from '../types';
+import toast from 'react-hot-toast';
+import { useState } from 'react';
+import InvoiceModal from '../components/InvoiceModal';
 
 const STAGES = ['NEW_LEAD', 'QUALIFIED', 'PROPOSAL_SENT', 'APPLICATION_SUBMITTED', 'BANK_APPROVAL', 'WON', 'LOST'];
 
@@ -16,6 +19,10 @@ const stageLabels: Record<string, string> = {
 };
 
 export default function PipelinePage() {
+  const queryClient = useQueryClient();
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+
   const { data: kanbanData, isLoading } = useQuery({
     queryKey: ['kanban'],
     queryFn: () => crmApi.getKanban(),
@@ -24,6 +31,26 @@ export default function PipelinePage() {
   const { data: kpiData } = useQuery({
     queryKey: ['pipeline-kpis'],
     queryFn: () => crmApi.getKpis(),
+  });
+
+  const convertMutation = useMutation({
+    mutationFn: (id: string) => crmApi.convertLead(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kanban'] });
+      queryClient.invalidateQueries({ queryKey: ['pipeline-kpis'] });
+      toast.success('Lead converted to WON');
+    },
+    onError: () => toast.error('Failed to convert lead'),
+  });
+
+  const createInvoiceMutation = useMutation({
+    mutationFn: (data: any) => invoiceApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      setIsInvoiceModalOpen(false);
+      toast.success('Quotation/Invoice created');
+    },
+    onError: () => toast.error('Failed to create quotation/invoice'),
   });
 
   const kanban = kanbanData?.data?.data || [];
@@ -56,11 +83,35 @@ export default function PipelinePage() {
                   </div>
                   <div className="space-y-3 min-h-[200px]">
                     {leads.map((lead) => (
-                      <div key={lead.id} className="card p-4 cursor-pointer hover:shadow-md transition-shadow">
+                      <div key={lead.id} className="card p-4 cursor-pointer hover:shadow-md transition-shadow group relative">
                         <p className="font-medium text-sm">{lead.title}</p>
                         {lead.customer && <p className="text-xs text-gray-500 mt-1">{lead.customer.name}</p>}
                         {lead.estimatedValue && <p className="text-sm text-jolu-600 font-semibold mt-2">{formatCurrency(Number(lead.estimatedValue))}</p>}
-                        {lead.salesperson && <p className="text-xs text-gray-400 mt-2">{lead.salesperson.firstName} {lead.salesperson.lastName}</p>}
+                        <div className="flex justify-between items-center mt-2">
+                          {lead.salesperson && <p className="text-xs text-gray-400">{lead.salesperson.firstName} {lead.salesperson.lastName}</p>}
+                          <div className="flex gap-1">
+                            {lead.customer && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedLead(lead);
+                                  setIsInvoiceModalOpen(true);
+                                }}
+                                className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                Quote
+                              </button>
+                            )}
+                            {lead.pipelineStage !== 'WON' && lead.pipelineStage !== 'LOST' && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); convertMutation.mutate(lead.id); }}
+                                className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                Mark Won
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -88,6 +139,25 @@ export default function PipelinePage() {
           </div>
         )}
       </div>
+
+      {isInvoiceModalOpen && (
+        <InvoiceModal
+          isOpen={isInvoiceModalOpen}
+          onClose={() => { setIsInvoiceModalOpen(false); setSelectedLead(null); }}
+          onSubmit={(data) => createInvoiceMutation.mutate(data)}
+          initialData={selectedLead ? {
+            customerId: selectedLead.customer?.id,
+            type: 'QUOTATION',
+            lines: [{
+              description: selectedLead.title,
+              quantity: 1,
+              unitPrice: Number(selectedLead.estimatedValue || 0),
+              taxRate: 16,
+              total: Number(selectedLead.estimatedValue || 0)
+            }]
+          } : undefined}
+        />
+      )}
     </div>
   );
 }

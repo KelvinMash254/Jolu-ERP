@@ -32,8 +32,17 @@ router.post('/contracts', requirePermission('security', 'create'), async (req: A
   const count = await prisma.securityContract.count();
   const contractNumber = `SEC-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
 
+  const { clientId, monthlyFee, startDate, guardsCount, terms } = req.body;
   const contract = await prisma.securityContract.create({
-    data: { ...req.body, companyId: req.companyId!, contractNumber },
+    data: {
+      clientId,
+      monthlyFee,
+      startDate: new Date(startDate),
+      guardsCount: guardsCount || 1,
+      terms,
+      companyId: req.companyId!,
+      contractNumber
+    },
   });
   res.status(201).json({ success: true, data: contract });
 });
