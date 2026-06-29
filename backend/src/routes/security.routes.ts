@@ -61,6 +61,13 @@ router.get('/sites', requirePermission('security', 'read'), async (req: AuthRequ
   res.json({ success: true, data: sites });
 });
 
+router.post('/sites', requirePermission('security', 'create'), async (req: AuthRequest, res: Response) => {
+  const site = await prisma.site.create({
+    data: { ...req.body, companyId: req.companyId! },
+  });
+  res.status(201).json({ success: true, data: site });
+});
+
 router.post('/deployments', requirePermission('security', 'create'), async (req: AuthRequest, res: Response) => {
   const deployment = await prisma.guardDeployment.create({ data: req.body });
   res.status(201).json({ success: true, data: deployment });

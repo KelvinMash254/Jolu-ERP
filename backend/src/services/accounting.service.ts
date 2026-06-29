@@ -63,7 +63,7 @@ export async function createJournalEntry(
     where: { companyId, code: { in: lines.map((l) => l.accountCode) } },
   });
 
-  const accountMap = new Map(accounts.map((a: any) => [a.code, a]));
+  const accountMap = new Map<string, any>(accounts.map((a: any) => [a.code, a]));
 
   const entry = await db.journalEntry.create({
     data: {
@@ -80,7 +80,7 @@ export async function createJournalEntry(
           const account = accountMap.get(line.accountCode);
           if (!account) throw new Error(`Account ${line.accountCode} not found`);
           return {
-            accountId: account.id,
+            accountId: (account as any).id,
             debit: line.debit || 0,
             credit: line.credit || 0,
             description: line.description,

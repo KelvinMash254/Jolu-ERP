@@ -1,11 +1,18 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuthStore } from '../store/authStore';
 import { inventoryApi } from '../services/api';
 import { PageHeader, LoadingSpinner, StatusBadge, formatCurrency } from '../components/ui/Shared';
 import type { MachineryUnit, SparePart } from '../types';
+import InventoryModal from '../components/InventoryModal';
+import toast from 'react-hot-toast';
+import { Plus } from 'lucide-react';
 
 export default function InventoryPage() {
-  const [tab, setTab] = useState<'machinery' | 'spare-parts' | 'vehicles'>('machinery');
+  const { currentCompany } = useAuthStore();
+  const queryClient = useQueryClient();
+  const [tab, setTab] = useState<'machinery' | 'spare-parts' | 'vehicles'>(currentCompany?.code === 'SECURITY' ? 'spare-parts' : 'machinery');
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data: machineryData, isLoading: loadingM } = useQuery({
     queryKey: ['machinery'],
@@ -25,21 +32,53 @@ export default function InventoryPage() {
     enabled: tab === 'vehicles',
   });
 
+  const createMutation = useMutation({
+    mutationFn: ({ type, data }: { type: string; data: any }) => {
+      if (type === 'machinery') return inventoryApi.createMachinery(data);
+      if (type === 'spare-parts') return inventoryApi.createSparePart(data);
+      return inventoryApi.createVehicle(data);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [variables.type] });
+      setIsModalOpen(false);
+      toast.success(`${variables.type} added successfully`);
+    },
+    onError: () => toast.error('Failed to add item'),
+  });
+
   const machinery = (machineryData?.data?.data || []) as MachineryUnit[];
   const parts = (partsData?.data?.data || []) as SparePart[];
   const vehicles = vehiclesData?.data?.data || [];
 
   return (
     <div>
-      <PageHeader title="Inventory Management" subtitle="Machinery, spare parts, and vehicles" />
+      <PageHeader
+        title="Inventory Management"
+        subtitle="Machinery, spare parts, and vehicles"
+        actions={
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="btn-primary flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" /> Add {tab.replace('-', ' ')}
+          </button>
+        }
+      />
 
       <div className="p-8">
         <div className="flex gap-2 mb-6">
-          {(['machinery', 'spare-parts', 'vehicles'] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 rounded-lg text-sm font-medium capitalize ${tab === t ? 'bg-jolu-600 text-white' : 'bg-white border text-gray-600'}`}>
-              {t.replace('-', ' ')}
-            </button>
-          ))}
+          {(['machinery', 'spare-parts', 'vehicles'] as const)
+            .filter(t => {
+              if (currentCompany?.code === 'SECURITY') return t === 'spare-parts';
+              if (currentCompany?.code === 'MACHINERIES') return t !== 'vehicles';
+              if (currentCompany?.code === 'AUTOMOBILE') return t === 'vehicles' || t === 'spare-parts';
+              return true;
+            })
+            .map((t) => (
+              <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 rounded-lg text-sm font-medium capitalize ${tab === t ? 'bg-jolu-600 text-white' : 'bg-white border text-gray-600'}`}>
+                {currentCompany?.code === 'SECURITY' && t === 'spare-parts' ? 'Security Items' : t.replace('-', ' ')}
+              </button>
+            ))}
         </div>
 
         {tab === 'machinery' && (
@@ -75,7 +114,12 @@ export default function InventoryPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
                   <tr className="text-left text-gray-500">
-                    <th className="px-6 py-3">Part Number</th><th className="px-6 py-3">Name</th><th className="px-6 py-3">Category</th><th className="px-6 py-3">Qty</th><th className="px-6 py-3">Reorder Level</th><th className="px-6 py-3">Price</th>
+                    <th className="px-6 py-3">{currentCompany?.code === 'SECURITY' ? 'Item Code' : 'Part Number'}</th>
+                    <th className="px-6 py-3">{currentCompany?.code === 'SECURITY' ? 'Item Name' : 'Name'}</th>
+                    <th className="px-6 py-3">Category</th>
+                    <th className="px-6 py-3">Qty</th>
+                    <th className="px-6 py-3">Reorder Level</th>
+                    <th className="px-6 py-3">Price</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -120,6 +164,13 @@ export default function InventoryPage() {
           ) : <p className="text-gray-500 text-center py-12">No vehicles in inventory</p>
         )}
       </div>
+
+      <InventoryModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        activeTab={tab}
+        onSubmit={(type, data) => createMutation.mutate({ type, data })}
+      />
     </div>
   );
 }

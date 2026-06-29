@@ -120,4 +120,6 @@ export interface ServiceTicket {
   status: string;
   customer?: { name: string; phone: string };
   technician?: { firstName: string; lastName: string };
+  machineryUnit?: { productName: string; serialNumber: string };
+  vehicle?: { make: string; model: string; registrationNumber: string };
 }
