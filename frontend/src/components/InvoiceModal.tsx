@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { crmApi, securityApi } from '../services/api';
+import { useAuthStore } from '../store/authStore';
 
 interface InvoiceModalProps {
   isOpen: boolean;
@@ -11,12 +12,24 @@ interface InvoiceModalProps {
 }
 
 export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }: InvoiceModalProps) {
-  const [type, setType] = useState(initialData?.type || 'TAX_INVOICE');
+  const { currentCompany } = useAuthStore();
+  const [type, setType] = useState(initialData?.type || 'INVOICE');
   const [customerId, setCustomerId] = useState(initialData?.customerId || '');
   const [securityClientId, setSecurityClientId] = useState(initialData?.securityClientId || '');
+  const [contractId, setContractId] = useState(initialData?.contractId || '');
   const [dueDate, setDueDate] = useState(initialData?.dueDate || '');
   const [notes, setNotes] = useState(initialData?.notes || '');
   const [lines, setLines] = useState(initialData?.lines || [{ description: '', quantity: 1, unitPrice: 0, taxRate: 16, total: 0 }]);
+
+  useEffect(() => {
+    if (initialData) {
+      setType(initialData.type || 'INVOICE');
+      setCustomerId(initialData.customerId || '');
+      setSecurityClientId(initialData.securityClientId || '');
+      setContractId(initialData.contractId || '');
+      setLines(initialData.lines || [{ description: '', quantity: 1, unitPrice: 0, taxRate: 16, total: 0 }]);
+    }
+  }, [initialData]);
 
   const { data: customersData } = useQuery({
     queryKey: ['customers'],
@@ -38,7 +51,7 @@ export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }:
   };
 
   const removeLine = (index: number) => {
-    setLines(lines.filter((_, i) => i !== index));
+    setLines(lines.filter((_: any, i: number) => i !== index));
   };
 
   const updateLine = (index: number, field: string, value: any) => {
@@ -53,8 +66,8 @@ export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }:
     setLines(newLines);
   };
 
-  const subtotal = lines.reduce((sum, line) => sum + line.total, 0);
-  const taxAmount = lines.reduce((sum, line) => sum + (line.total * (line.taxRate / 100)), 0);
+  const subtotal = lines.reduce((sum: number, line: any) => sum + line.total, 0);
+  const taxAmount = lines.reduce((sum: number, line: any) => sum + (line.total * (line.taxRate / 100)), 0);
   const total = subtotal + taxAmount;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -63,6 +76,7 @@ export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }:
       type,
       customerId: customerId || undefined,
       securityClientId: securityClientId || undefined,
+      contractId: contractId || undefined,
       dueDate,
       notes,
       lines,
@@ -108,33 +122,37 @@ export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }:
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Customer (Machineries/Auto)</label>
-              <select 
-                value={customerId} 
-                onChange={(e) => { setCustomerId(e.target.value); setSecurityClientId(''); }}
-                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-jolu-500 focus:ring-jolu-500"
-              >
-                <option value="">Select Customer</option>
-                {customers.map((c: any) => (
-                  <option key={c.id} value={c.id}>{c.name} ({c.phone})</option>
-                ))}
-              </select>
-            </div>
+            {(currentCompany?.code === 'MACHINERIES' || currentCompany?.code === 'AUTOMOBILE') && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
+                <select
+                  value={customerId}
+                  onChange={(e) => setCustomerId(e.target.value)}
+                  className="w-full rounded-lg border-gray-300 shadow-sm focus:border-jolu-500 focus:ring-jolu-500"
+                >
+                  <option value="">Select Customer</option>
+                  {customers.map((c: any) => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.phone})</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Security Client</label>
-              <select 
-                value={securityClientId} 
-                onChange={(e) => { setSecurityClientId(e.target.value); setCustomerId(''); }}
-                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-jolu-500 focus:ring-jolu-500"
-              >
-                <option value="">Select Security Client</option>
-                {securityClients.map((c: any) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
+            {currentCompany?.code === 'SECURITY' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Security Client</label>
+                <select
+                  value={securityClientId}
+                  onChange={(e) => setSecurityClientId(e.target.value)}
+                  className="w-full rounded-lg border-gray-300 shadow-sm focus:border-jolu-500 focus:ring-jolu-500"
+                >
+                  <option value="">Select Security Client</option>
+                  {securityClients.map((c: any) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -162,7 +180,7 @@ export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }:
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {lines.map((line, index) => (
+                  {lines.map((line: any, index: number) => (
                     <tr key={index}>
                       <td className="py-3 pr-4">
                         <input 

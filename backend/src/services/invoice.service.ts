@@ -63,12 +63,11 @@ try {
     doc.fontSize(24).font('Helvetica-Bold').fillColor(primaryColor).text(formatInvoiceType(invoice.type), 300, headerY, { align: 'right' });
     
     doc.fontSize(14).font('Helvetica-Bold').fillColor('#000000').text(invoice.company.name, 300, doc.y, { align: 'right' });
-    doc.fontSize(9).font('Helvetica').fillColor('#000000').text('P.O. Box 7161 - 00200, Nairobi', 300, doc.y, { align: 'right' });
     doc.fontSize(9).font('Helvetica').fillColor('#000000').text(invoice.company.address || '', 300, doc.y, { align: 'right' });
     doc.text(`T: ${invoice.company.phone || ''}`, 300, doc.y, { align: 'right' });
-    doc.text('Email: info@jolumachineries.com', 300, doc.y, { align: 'right', });
-    doc.text('CC: jolumachineries@gmail.com', 300, doc.y, { align: 'right', });
-    doc.text(`Website: www.jolumachineries.com`, 300, doc.y, { align: 'right', });
+    doc.text(`Email: ${invoice.company.email || ''}`, 300, doc.y, { align: 'right', });
+    if (invoice.company.ccEmail) doc.text(`CC: ${invoice.company.ccEmail}`, 300, doc.y, { align: 'right', });
+    if (invoice.company.website) doc.text(`Website: ${invoice.company.website}`, 300, doc.y, { align: 'right', });
 
 // Dynamic document labels
 const documentLabels: Record<InvoiceType, { number: string; date: string }> = {

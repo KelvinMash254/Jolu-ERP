@@ -1,11 +1,16 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { inventoryApi } from '../services/api';
 import { PageHeader, LoadingSpinner, StatusBadge, formatCurrency } from '../components/ui/Shared';
 import type { MachineryUnit, SparePart } from '../types';
+import InventoryModal from '../components/InventoryModal';
+import toast from 'react-hot-toast';
+import { Plus } from 'lucide-react';
 
 export default function InventoryPage() {
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<'machinery' | 'spare-parts' | 'vehicles'>('machinery');
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data: machineryData, isLoading: loadingM } = useQuery({
     queryKey: ['machinery'],
@@ -25,13 +30,38 @@ export default function InventoryPage() {
     enabled: tab === 'vehicles',
   });
 
+  const createMutation = useMutation({
+    mutationFn: ({ type, data }: { type: string; data: any }) => {
+      if (type === 'machinery') return inventoryApi.createMachinery(data);
+      if (type === 'spare-parts') return inventoryApi.createSparePart(data);
+      return inventoryApi.createVehicle(data);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [variables.type] });
+      setIsModalOpen(false);
+      toast.success(`${variables.type} added successfully`);
+    },
+    onError: () => toast.error('Failed to add item'),
+  });
+
   const machinery = (machineryData?.data?.data || []) as MachineryUnit[];
   const parts = (partsData?.data?.data || []) as SparePart[];
   const vehicles = vehiclesData?.data?.data || [];
 
   return (
     <div>
-      <PageHeader title="Inventory Management" subtitle="Machinery, spare parts, and vehicles" />
+      <PageHeader
+        title="Inventory Management"
+        subtitle="Machinery, spare parts, and vehicles"
+        actions={
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="btn-primary flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" /> Add {tab.replace('-', ' ')}
+          </button>
+        }
+      />
 
       <div className="p-8">
         <div className="flex gap-2 mb-6">
@@ -120,6 +150,13 @@ export default function InventoryPage() {
           ) : <p className="text-gray-500 text-center py-12">No vehicles in inventory</p>
         )}
       </div>
+
+      <InventoryModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        activeTab={tab}
+        onSubmit={(type, data) => createMutation.mutate({ type, data })}
+      />
     </div>
   );
 }
