@@ -166,7 +166,7 @@ Query: `status`, `type`
 ### POST /invoices
 ```json
 {
-  "type": "TAX_INVOICE",
+  "type": "INVOICE",
   "customerId": "uuid",
   "dueDate": "2026-07-01",
   "lines": [

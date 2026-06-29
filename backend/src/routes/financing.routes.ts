@@ -22,8 +22,15 @@ router.get('/', requirePermission('financing', 'read'), async (req: AuthRequest,
 });
 
 router.post('/', requirePermission('financing', 'create'), async (req: AuthRequest, res: Response) => {
+  const { customerId, bankName, loanAmount, depositAmount } = req.body;
   const application = await prisma.bankFinancingApplication.create({
-    data: { ...req.body, companyId: req.companyId! },
+    data: { 
+      customerId, 
+      bankName, 
+      loanAmount, 
+      depositAmount: depositAmount || 0,
+      companyId: req.companyId! 
+    },
   });
   res.status(201).json({ success: true, data: application });
 });

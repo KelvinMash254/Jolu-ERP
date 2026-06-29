@@ -32,7 +32,7 @@ router.post('/', requirePermission('invoices', 'create'), async (req: AuthReques
   const invoiceNumber = await getNextInvoiceNumber(req.companyId!, type);
   const subtotal = lines.reduce((s: number, l: { total: number }) => s + l.total, 0);
   const taxAmount = lines.reduce(
-    (s: number, l: { total: number; taxRate?: number }) => s + l.total * ((l.taxRate || 16) / 100),
+    (s: number, l: { total: number; taxRate?: number }) => s + l.total * ((l.taxRate || 0) / 100),
     0
   );
 
@@ -55,7 +55,7 @@ router.post('/', requirePermission('invoices', 'create'), async (req: AuthReques
             description: l.description,
             quantity: l.quantity,
             unitPrice: l.unitPrice,
-            taxRate: l.taxRate || 16,
+            taxRate: l.taxRate || 0,
             total: Number(l.quantity) * Number(l.unitPrice)
           })) 
         },
@@ -63,7 +63,7 @@ router.post('/', requirePermission('invoices', 'create'), async (req: AuthReques
       include: { lines: true, customer: true },
     });
 
-    if (type === 'TAX_INVOICE') {
+    if (type === 'INVOICE') {
       const journalLines = [
         { accountCode: '1100', debit: Number(inv.totalAmount), description: `Invoice ${inv.invoiceNumber}` },
         { accountCode: '4000', credit: Number(inv.subtotal), description: `Sales from ${inv.invoiceNumber}` },

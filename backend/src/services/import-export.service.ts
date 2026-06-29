@@ -39,6 +39,11 @@ export async function importData(
 
     let imported = 0;
 
+console.log('Entity:', entity);
+console.log('Records:', records.length);
+console.log('First Record:', records[0]);
+
+
     switch (entity) {
       case 'customers':
         for (const row of records) {
@@ -73,26 +78,75 @@ export async function importData(
         }
         break;
 
-      case 'inventory':
-        for (const row of records) {
-          await prisma.machineryUnit.create({
-            data: {
-              companyId,
-              productName: row.productName || row['Product Name'],
-              category: (row.category || 'TRACTOR').toUpperCase() as 'TRACTOR' | 'HARVESTER' | 'FARM_IMPLEMENT',
-              brand: row.brand || row.Brand,
-              model: row.model || row.Model,
-              chassisNumber: row.chassisNumber || row['Chassis Number'],
-              engineNumber: row.engineNumber || row['Engine Number'],
-              serialNumber: row.serialNumber || row['Serial Number'],
-              costPrice: parseFloat(row.costPrice || row['Cost Price'] || '0'),
-              sellingPrice: parseFloat(row.sellingPrice || row['Selling Price'] || '0'),
-            },
-          });
-          imported++;
-        }
-        break;
+case 'inventory':
+  for (const row of records) {
+    const costPrice = Number(
+      String(row.costPrice || row['Cost Price'] || '0')
+        .replace(/,/g, '')
+        .replace(/"/g, '')
+    );
 
+    const sellingPrice = Number(
+      String(row.sellingPrice || row['Selling Price'] || '0')
+        .replace(/,/g, '')
+        .replace(/"/g, '')
+    );
+
+    const chassisNumber =
+      row.chassisNumber || row['Chassis Number'] || '';
+
+    const serialNumber =
+      row.serialNumber ||
+      row['Serial Number'] ||
+      chassisNumber;
+
+const existing = await prisma.machineryUnit.findFirst({
+  where: {
+    companyId,
+    chassisNumber,
+  },
+});
+
+if (existing) {
+  console.log(
+    `Skipping duplicate chassis number: ${chassisNumber}`
+  );
+  continue;
+}
+
+await prisma.machineryUnit.create({
+  data: {
+    companyId,
+    productName: row.productName || row['Product Name'],
+    category: (
+      row.category ||
+      row.Category ||
+      'TRACTOR'
+    ).toUpperCase() as any,
+    brand:
+      row.brand ||
+      row.Brand ||
+      'Zoomlion',
+    model: row.model || row.Model || '',
+    chassisNumber,
+    engineNumber:
+      row.engineNumber ||
+      row['Engine Number'] ||
+      '',
+    serialNumber,
+    costPrice: isNaN(costPrice)
+      ? 0
+      : costPrice,
+    sellingPrice: isNaN(sellingPrice)
+      ? 0
+      : sellingPrice,
+  },
+});
+
+imported++;
+  }
+  break;
+  
       case 'spare-parts':
         for (const row of records) {
           await prisma.sparePart.create({

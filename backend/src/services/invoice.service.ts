@@ -63,20 +63,82 @@ try {
     doc.fontSize(24).font('Helvetica-Bold').fillColor(primaryColor).text(formatInvoiceType(invoice.type), 300, headerY, { align: 'right' });
     
     doc.fontSize(14).font('Helvetica-Bold').fillColor('#000000').text(invoice.company.name, 300, doc.y, { align: 'right' });
+    doc.fontSize(9).font('Helvetica').fillColor('#000000').text('P.O. Box 7161 - 00200, Nairobi', 300, doc.y, { align: 'right' });
     doc.fontSize(9).font('Helvetica').fillColor('#000000').text(invoice.company.address || '', 300, doc.y, { align: 'right' });
     doc.text(`T: ${invoice.company.phone || ''}`, 300, doc.y, { align: 'right' });
-    doc.text(`Email: ${invoice.company.email || ''}`, 300, doc.y, { align: 'right' });
+    doc.text('Email: info@jolumachineries.com', 300, doc.y, { align: 'right', });
+    doc.text('CC: jolumachineries@gmail.com', 300, doc.y, { align: 'right', });
+    doc.text(`Website: www.jolumachineries.com`, 300, doc.y, { align: 'right', });
 
+// Dynamic document labels
+const documentLabels: Record<InvoiceType, { number: string; date: string }> = {
+  INVOICE: {
+    number: 'Invoice No',
+    date: 'Invoice Date',
+  },
+  QUOTATION: {
+    number: 'Quotation No',
+    date: 'Quotation Date',
+  },
+  RECEIPT: {
+    number: 'Receipt No',
+    date: 'Receipt Date',
+  },
+  PROFORMA: {
+    number: 'Proforma No',
+    date: 'Proforma Date',
+  },
+  CREDIT_NOTE: {
+    number: 'Credit Note No',
+    date: 'Credit Note Date',
+  },
+  DEBIT_NOTE: {
+    number: 'Debit Note No',
+    date: 'Debit Note Date',
+  },
+  PURCHASE_ORDER: {
+    number: 'PO No',
+    date: 'PO Date',
+  },
+  DELIVERY_NOTE: {
+    number: 'Delivery Note No',
+    date: 'Delivery Date',
+  },
+};
 
-    doc.moveDown();
-    doc.fontSize(10).text(`Quotation No:`, 350, doc.y, { continued: true,});
-    doc.font('Helvetica-Bold').text(`  ${invoice.invoiceNumber}`, { align: 'right' });
-    doc.font('Helvetica').text(`Invoice Date:`, 350, doc.y, { continued: true});
-    doc.text(`  ${invoice.issueDate.toLocaleDateString()}`, { align: 'right' });
-    if (invoice.dueDate) {
-      doc.text(`Due Date:`, 350, doc.y, { continued: true});
-      doc.text(`  ${invoice.dueDate.toLocaleDateString()}`, { align: 'right' });
-    }
+const labels = documentLabels[invoice.type];
+
+doc.moveDown();
+
+doc.fontSize(10)
+  .font('Helvetica')
+  .text(`${labels.number}:`, 350, doc.y, { continued: true });
+
+doc.font('Helvetica-Bold')
+  .text(` ${invoice.invoiceNumber}`, { align: 'right' });
+
+doc.font('Helvetica')
+  .text(`${labels.date}:`, 350, doc.y, { continued: true });
+
+doc.text(` ${invoice.issueDate.toLocaleDateString('en-GB')}`, {
+  align: 'right',
+});
+
+// Only show Due Date on documents that require it
+if (
+  invoice.type !== InvoiceType.RECEIPT &&
+  invoice.type !== InvoiceType.QUOTATION &&
+  invoice.type !== InvoiceType.DELIVERY_NOTE
+) {
+  const dueDate = new Date(invoice.issueDate);
+  dueDate.setDate(dueDate.getDate() + 30);
+
+  doc.text(`Due Date:`, 350, doc.y, { continued: true });
+
+  doc.text(` ${dueDate.toLocaleDateString('en-GB')}`, {
+    align: 'right',
+  });
+}
 
     // Customer
      doc.moveDown(2);
@@ -210,7 +272,7 @@ function formatInvoiceType(type: InvoiceType): string {
 export async function getNextInvoiceNumber(companyId: string, type: InvoiceType): Promise<string> {
   const prefixMap: Record<InvoiceType, string> = {
     PROFORMA: 'PRO',
-    TAX_INVOICE: 'INV',
+    INVOICE: 'INV',
     RECEIPT: 'RCP',
     CREDIT_NOTE: 'CN',
     DEBIT_NOTE: 'DN',

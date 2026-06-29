@@ -30,6 +30,8 @@ model Company {
   address     String?
   phone       String?
   email       String?
+  ccEmail     String?
+  website     String?
   logoUrl     String?
   currency    String      @default("KES")
   isActive    Boolean     @default(true)
@@ -389,7 +391,7 @@ model MachineryUnit {
   category           MachineryCategory
   brand              String
   model              String
-  chassisNumber      String?           @unique
+  chassisNumber      String?          
   engineNumber       String?
   registrationNumber String?
   serialNumber       String?           @unique

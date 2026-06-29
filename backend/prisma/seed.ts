@@ -95,8 +95,10 @@ async function main() {
       create: {
         ...co,
         address: 'Nairobi, Kenya',
-        phone: '+254705038679',
-        email: `info@${co.code.toLowerCase().replace('_', '')}.jolumachineries.com`,
+        phone: '+254 769 281 518',
+        email: 'info@jolumachineries.com',
+        ccEmail: 'jolumachineries@gmail.com', 
+        website: 'www.jolumachineries.com',
       },
       update: {},
     });
