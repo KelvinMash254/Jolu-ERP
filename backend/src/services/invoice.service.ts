@@ -30,7 +30,15 @@ export async function generateInvoicePDF(invoiceId: string, options: PDFOptions 
 
   const fileName = `${invoice.invoiceNumber.replace(/\//g, '-')}.pdf`;
   const filePath = path.join(UPLOAD_DIR, fileName);
-  const primaryColor = options.primaryColor || '#0ea5e9'; // Default Jolu blue
+
+  // Default colors per company
+  const companyColors: Record<string, string> = {
+    MACHINERIES: '#0ea5e9', // Jolu Blue
+    SECURITY: '#1e293b',    // Slate Dark
+    AUTOMOBILE: '#dc2626',   // Red
+  };
+
+  const primaryColor = options.primaryColor || companyColors[invoice.company.code] || '#0ea5e9';
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
@@ -210,7 +218,13 @@ if (
     doc.rect(50, y, bankTableWidth, 15).stroke();
     doc.font('Helvetica-Bold').text('Bank Details:', 55, y + 3, { width: bankTableWidth - 10, align: 'center' });
     
-    const bankDetails = [
+    const bankDetails = invoice.company.code === 'SECURITY' ? [
+      ['Account Name', 'Jolu Group Security Ltd'],
+      ['Account Number', '0112099542001'],
+      ['Bank Name', 'Co-operative Bank'],
+      ['Branch Name', 'Upper Hill'],
+      ['Branch Code', '011']
+    ] : [
       ['Account Name', 'Jolu Agricultural Machineries Ltd'],
       ['Account Number', '3012099542002'],
       ['Bank Name', 'Kingdom Bank'],
@@ -231,7 +245,11 @@ if (
     doc.rect(50, y, bankTableWidth, 15).stroke();
     doc.font('Helvetica-Bold').text('MPESA Details', 55, y + 3, { width: bankTableWidth - 10, align: 'center' });
     
-    const mpesaDetails = [
+    const mpesaDetails = invoice.company.code === 'SECURITY' ? [
+      ['MPESA Paybill', '400200'],
+      ['Account Number', '011929954200'],
+      ['Account Name', 'Jolu Security Services']
+    ] : [
       ['MPESA Paybill', '529901'],
       ['Account Number', '062015'],
       ['Account Name', invoice.company.legalName]

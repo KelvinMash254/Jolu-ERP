@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
+import { useAuthStore } from '../store/authStore';
 
 interface InventoryModalProps {
   isOpen: boolean;
@@ -9,6 +10,7 @@ interface InventoryModalProps {
 }
 
 export default function InventoryModal({ isOpen, onClose, onSubmit, activeTab }: InventoryModalProps) {
+  const { currentCompany } = useAuthStore();
   const [formData, setFormData] = useState<any>({});
 
   if (!isOpen) return null;
@@ -74,16 +76,26 @@ export default function InventoryModal({ isOpen, onClose, onSubmit, activeTab }:
     <>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="label">Part Number</label>
+          <label className="label">{currentCompany?.code === 'SECURITY' ? 'Item Code' : 'Part Number'}</label>
           <input className="input" required onChange={(e) => handleChange('partNumber', e.target.value)} />
         </div>
         <div>
-          <label className="label">Part Name</label>
+          <label className="label">{currentCompany?.code === 'SECURITY' ? 'Item Name' : 'Part Name'}</label>
           <input className="input" required onChange={(e) => handleChange('partName', e.target.value)} />
         </div>
         <div>
           <label className="label">Category</label>
-          <input className="input" onChange={(e) => handleChange('category', e.target.value)} />
+          {currentCompany?.code === 'SECURITY' ? (
+            <select className="input" onChange={(e) => handleChange('category', e.target.value)}>
+              <option value="">Select Category</option>
+              <option value="UNIFORM">Uniforms (Boots, Trousers, etc.)</option>
+              <option value="EQUIPMENT">Equipment (Baton, Whistle, etc.)</option>
+              <option value="STATIONERY">Stationery</option>
+              <option value="OTHER">Other</option>
+            </select>
+          ) : (
+            <input className="input" onChange={(e) => handleChange('category', e.target.value)} />
+          )}
         </div>
         <div>
           <label className="label">Initial Quantity</label>
