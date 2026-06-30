@@ -4,7 +4,7 @@ import { stringify } from 'csv-stringify/sync';
 import prisma from '../config/database';
 import fs from 'fs';
 
-type EntityType = 'customers' | 'leads' | 'inventory' | 'spare-parts' | 'invoices';
+type EntityType = 'customers' | 'leads' | 'inventory' | 'spare-parts' | 'invoices' | 'security-clients' | 'guards';
 
 export async function importData(
   companyId: string,
@@ -143,6 +143,40 @@ console.log('First Record:', records[0]);
         }
         break;
 
+      case 'security-clients':
+        for (const row of records) {
+          await prisma.securityClient.create({
+            data: {
+              companyId,
+              name: row.name || row.Name,
+              contactPerson: row.contactPerson || row['Contact Person'],
+              phone: row.phone || row.Phone,
+              email: row.email || row.Email,
+              address: row.address || row.Address,
+              kraPin: row.kraPin || row['KRA PIN'],
+            },
+          });
+          imported++;
+        }
+        break;
+
+      case 'guards':
+        for (const row of records) {
+          await prisma.guard.create({
+            data: {
+              companyId,
+              employeeNo: row.employeeNo || row['Employee No'],
+              firstName: row.firstName || row['First Name'],
+              lastName: row.lastName || row['Last Name'],
+              phone: row.phone || row.Phone,
+              idNumber: row.idNumber || row['ID Number'],
+              licenseNo: row.licenseNo || row['License No'],
+            },
+          });
+          imported++;
+        }
+        break;
+
       default:
         throw new Error(`Import not supported for entity: ${entity}`);
     }
@@ -200,6 +234,12 @@ export async function exportData(
       break;
     case 'invoices':
       data = await prisma.invoice.findMany({ where: { companyId } });
+      break;
+    case 'security-clients':
+      data = await prisma.securityClient.findMany({ where: { companyId } });
+      break;
+    case 'guards':
+      data = await prisma.guard.findMany({ where: { companyId } });
       break;
   }
 

@@ -3,9 +3,9 @@ import { securityApi } from '../services/api';
 import { PageHeader, LoadingSpinner, formatCurrency } from '../components/ui/Shared';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { Plus, Receipt } from 'lucide-react';
+import { Plus, Receipt, Download, Upload, FileText } from 'lucide-react';
 import InvoiceModal from '../components/InvoiceModal';
-import { invoiceApi } from '../services/api';
+import { invoiceApi, importExportApi } from '../services/api';
 
 export default function SecurityPage() {
   const queryClient = useQueryClient();
@@ -25,7 +25,17 @@ export default function SecurityPage() {
   });
 
   const createContractMutation = useMutation({
-    mutationFn: (data: any) => securityApi.createContract(data),
+    mutationFn: (data: any) => {
+      const fd = new FormData();
+      Object.keys(data).forEach(key => {
+        if (key === 'file') {
+          if (data[key]) fd.append('file', data[key]);
+        } else {
+          fd.append(key, data[key]);
+        }
+      });
+      return securityApi.createContract(fd);
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['sec-contracts'] }); setShowForm(false); toast.success('Contract added'); },
   });
 
@@ -62,9 +72,52 @@ export default function SecurityPage() {
         title="Jolu Security Module" 
         subtitle="Clients, contracts, guards, and deployments" 
         actions={
-          <button onClick={() => { setShowForm(true); setFormData({}); }} className="btn-primary flex items-center gap-2">
-            <Plus className="w-4 h-4" /> Add {tab.slice(0, -1)}
-          </button>
+          <div className="flex gap-2">
+             <button onClick={() => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = '.csv,.xlsx';
+              input.onchange = (e) => {
+                const file = (e.target as HTMLInputElement).files?.[0];
+                if (file) {
+                  const formData = new FormData();
+                  formData.append('file', file);
+                  formData.append('entity', tab === 'clients' ? 'security-clients' : tab === 'guards' ? 'guards' : '');
+                  if (formData.get('entity')) {
+                    toast.promise(importExportApi.import(formData), {
+                      loading: 'Importing...',
+                      success: () => {
+                        queryClient.invalidateQueries({ queryKey: [`sec-${tab}`] });
+                        return 'Import successful';
+                      },
+                      error: 'Import failed',
+                    });
+                  }
+                }
+              };
+              input.click();
+            }} className="btn-secondary flex items-center gap-2">
+              <Upload className="w-4 h-4" /> Import
+            </button>
+            <button onClick={() => {
+              const entity = tab === 'clients' ? 'security-clients' : tab === 'guards' ? 'guards' : '';
+              if (entity) {
+                toast.promise(importExportApi.export(entity, 'xlsx'), {
+                  loading: 'Exporting...',
+                  success: (res) => {
+                    window.open(res.data.data, '_blank');
+                    return 'Export successful';
+                  },
+                  error: 'Export failed',
+                });
+              }
+            }} className="btn-secondary flex items-center gap-2">
+              <Download className="w-4 h-4" /> Export
+            </button>
+            <button onClick={() => { setShowForm(true); setFormData({}); }} className="btn-primary flex items-center gap-2">
+              <Plus className="w-4 h-4" /> Add {tab.slice(0, -1)}
+            </button>
+          </div>
         }
       />
 
@@ -87,9 +140,21 @@ export default function SecurityPage() {
               )}
               {tab === 'contracts' && (
                 <>
-                  <div><label className="label">Client ID</label><input className="input" onChange={e => setFormData({...formData, clientId: e.target.value})} /></div>
+                  <div>
+                    <label className="label">Security Client</label>
+                    <select className="input" onChange={e => setFormData({...formData, clientId: e.target.value})}>
+                      <option value="">Select Client</option>
+                      {(clients?.data?.data || []).map((c: any) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
                   <div><label className="label">Monthly Fee</label><input className="input" type="number" onChange={e => setFormData({...formData, monthlyFee: Number(e.target.value)})} /></div>
                   <div><label className="label">Start Date</label><input className="input" type="date" onChange={e => setFormData({...formData, startDate: new Date(e.target.value)})} /></div>
+                  <div>
+                    <label className="label">Contract File (PDF)</label>
+                    <input type="file" accept=".pdf" className="input" onChange={e => setFormData({...formData, file: e.target.files?.[0]})} />
+                  </div>
                 </>
               )}
               {tab === 'guards' && (
@@ -147,13 +212,26 @@ export default function SecurityPage() {
                       <td className="px-6 py-4">{c.guardsCount}</td>
                       <td className="px-6 py-4">{c.status}</td>
                       <td className="px-6 py-4">
-                        <button 
-                          onClick={() => setSelectedContract(c)}
-                          className="p-1 hover:bg-gray-100 rounded text-jolu-600"
-                          title="Generate Invoice"
-                        >
-                          <Receipt className="w-4 h-4" />
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setSelectedContract(c)}
+                            className="p-1 hover:bg-gray-100 rounded text-jolu-600"
+                            title="Generate Invoice"
+                          >
+                            <Receipt className="w-4 h-4" />
+                          </button>
+                          {c.fileUrl && (
+                            <a
+                              href={c.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1 hover:bg-gray-100 rounded text-blue-600"
+                              title="Download Contract"
+                            >
+                              <FileText className="w-4 h-4" />
+                            </a>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
