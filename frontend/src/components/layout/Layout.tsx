@@ -80,7 +80,12 @@ export default function Layout() {
               {user?.companies.map((co) => (
                 <button
                   key={co.id}
-                  onClick={() => { setCurrentCompany(co); setShowCompanyMenu(false); }}
+                  onClick={() => {
+                    setCurrentCompany(co);
+                    setShowCompanyMenu(false);
+                    // Refresh the page and redirect to dashboard to ensure all company-specific data is reloaded
+                    window.location.href = '/';
+                  }}
                   className={clsx(
                     'w-full text-left px-3 py-2 text-sm hover:bg-slate-700 first:rounded-t-lg last:rounded-b-lg',
                     currentCompany?.id === co.id && 'bg-jolu-800 text-jolu-200'
