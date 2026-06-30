@@ -8,7 +8,10 @@ router.use(authenticate, requireCompany);
 router.get('/clients', requirePermission('security', 'read'), async (req: AuthRequest, res: Response) => {
   const clients = await prisma.securityClient.findMany({
     where: { companyId: req.companyId! },
-    include: { _count: { select: { contracts: true, sites: true } } },
+    include: {
+      _count: { select: { contracts: true, sites: true } },
+      contracts: true
+    },
   });
   res.json({ success: true, data: clients });
 });

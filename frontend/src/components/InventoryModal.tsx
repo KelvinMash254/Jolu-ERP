@@ -68,6 +68,10 @@ export default function InventoryModal({ isOpen, onClose, onSubmit, activeTab }:
           <label className="label">Selling Price</label>
           <input className="input" type="number" required onChange={(e) => handleChange('sellingPrice', Number(e.target.value))} />
         </div>
+        <div>
+          <label className="label">Initial Mileage</label>
+          <input className="input" type="number" onChange={(e) => handleChange('mileage', Number(e.target.value))} />
+        </div>
       </div>
     </>
   );
