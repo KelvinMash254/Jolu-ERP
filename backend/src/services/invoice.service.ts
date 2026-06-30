@@ -75,9 +75,9 @@ const headerY = 50;
       }
     }
 
-    doc.fontSize(24).font('Helvetica-Bold').fillColor(primaryColor).text(formatInvoiceType(invoice.type), 300, headerY, { align: 'right' });
+    doc.fontSize(28).font('Helvetica-Bold').fillColor(primaryColor).text(formatInvoiceType(invoice.type).toUpperCase(), 300, headerY, { align: 'right' });
     
-    doc.fontSize(14).font('Helvetica-Bold').fillColor('#000000').text(invoice.company.name, 300, doc.y, { align: 'right' });
+    doc.fontSize(14).font('Helvetica-Bold').fillColor('#000000').text(invoice.company.name, 300, doc.y + 5, { align: 'right' });
     doc.fontSize(9).font('Helvetica').fillColor('#000000').text(invoice.company.address || '', 300, doc.y, { align: 'right' });
     doc.text(`T: ${invoice.company.phone || ''}`, 300, doc.y, { align: 'right' });
     doc.text(`Email: ${invoice.company.email || ''}`, 300, doc.y, { align: 'right', });
@@ -225,19 +225,31 @@ if (
     doc.rect(50, y, bankTableWidth, 15).stroke();
     doc.font('Helvetica-Bold').text('Bank Details:', 55, y + 3, { width: bankTableWidth - 10, align: 'center' });
     
-    const bankDetails = invoice.company.code === 'SECURITY' ? [
-      ['Account Name', 'Jolu Group Security Ltd'],
-      ['Account Number', '0112099542001'],
-      ['Bank Name', 'Co-operative Bank'],
-      ['Branch Name', 'Upper Hill'],
-      ['Branch Code', '011']
-    ] : [
+    let bankDetails = [
       ['Account Name', 'Jolu Agricultural Machineries Ltd'],
       ['Account Number', '3012099542002'],
       ['Bank Name', 'Kingdom Bank'],
       ['Branch Name', 'Thika'],
       ['Branch Code', '301']
     ];
+
+    if (invoice.company.code === 'SECURITY') {
+      bankDetails = [
+        ['Account Name', 'Jolu Group Security Ltd'],
+        ['Account Number', '0112099542001'],
+        ['Bank Name', 'Co-operative Bank'],
+        ['Branch Name', 'Upper Hill'],
+        ['Branch Code', '011']
+      ];
+    } else if (invoice.company.code === 'AUTOMOBILE') {
+      bankDetails = [
+        ['Account Name', 'Jolu Automobile Limited'],
+        ['Account Number', '3012099542003'],
+        ['Bank Name', 'Kingdom Bank'],
+        ['Branch Name', 'Thika'],
+        ['Branch Code', '301']
+      ];
+    }
 
     let bankY = y + 15;
     for (const [label, value] of bankDetails) {
@@ -252,15 +264,25 @@ if (
     doc.rect(50, y, bankTableWidth, 15).stroke();
     doc.font('Helvetica-Bold').text('MPESA Details', 55, y + 3, { width: bankTableWidth - 10, align: 'center' });
     
-    const mpesaDetails = invoice.company.code === 'SECURITY' ? [
-      ['MPESA Paybill', '400200'],
-      ['Account Number', '011929954200'],
-      ['Account Name', 'Jolu Security Services']
-    ] : [
+    let mpesaDetails = [
       ['MPESA Paybill', '529901'],
       ['Account Number', '062015'],
       ['Account Name', invoice.company.legalName]
     ];
+
+    if (invoice.company.code === 'SECURITY') {
+      mpesaDetails = [
+        ['MPESA Paybill', '400200'],
+        ['Account Number', '011929954200'],
+        ['Account Name', 'Jolu Security Services']
+      ];
+    } else if (invoice.company.code === 'AUTOMOBILE') {
+      mpesaDetails = [
+        ['MPESA Paybill', '529901'],
+        ['Account Number', '062016'],
+        ['Account Name', invoice.company.legalName]
+      ];
+    }
 
     let mpesaY = y + 15;
     for (const [label, value] of mpesaDetails) {
