@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Download, Send, Palette } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { invoiceApi } from '../services/api';
@@ -20,7 +20,7 @@ const COLORS = [
 ];
 
 export default function InvoicePreviewModal({ isOpen, onClose, invoiceId }: InvoicePreviewModalProps) {
-  const [primaryColor, setPrimaryColor] = useState('#15803d');
+  const [primaryColor, setPrimaryColor] = useState('#85be00');
 
   const { data: invoiceData, isLoading } = useQuery({
     queryKey: ['invoice', invoiceId],
@@ -45,9 +45,21 @@ const sendEmailMutation = useMutation({
   },
 });
 
-  if (!isOpen) return null;
-
   const invoice = invoiceData?.data?.data;
+
+  useEffect(() => {
+    if (invoice?.company?.code) {
+      const companyColors: Record<string, string> = {
+        MACHINERIES: '#85be00', // Lime Green
+        SECURITY: '#e82126',    // Bright Red
+        AUTOMOBILE: '#e82126',  // Bright Red
+      };
+      const color = companyColors[invoice.company.code] || '#85be00';
+      setPrimaryColor(color);
+    }
+  }, [invoice]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
@@ -126,74 +138,55 @@ const sendEmailMutation = useMutation({
             {isLoading || !invoice ? <LoadingSpinner /> : (
               <div className="bg-white w-[210mm] shadow-lg p-[20mm] min-h-[297mm] flex flex-col font-sans">
                 <div className="flex justify-between items-start mb-8">
-<div className="flex flex-col">
-
-<div className="w-32 h-32 mb-4 border rounded-lg bg-white overflow-hidden flex items-center justify-center shadow-sm">
-
-{invoice?.company?.logoUrl ? (
-
-<img
-
-src={invoice.company.logoUrl}
-
-alt="Company Logo"
-
-className="w-full h-full object-contain p-2"
-
-onLoad={() => console.log('Logo loaded successfully')}
-
-onError={(e) => {
-
-console.error('Logo failed:', invoice.company.logoUrl);
-
-e.currentTarget.style.display = 'none';
-
-}}
-
-/>
-
-) : (
-
-<span className="text-gray-400 text-sm font-medium">LOGO</span>
-
-)}
-
-</div>
-
-<h1 className="text-3xl font-bold" style={{ color: primaryColor }}>
-
-{invoice?.company?.name || 'Jolu Group'}
-
-</h1>
-
-<p className="text-sm text-gray-600">
-
-{invoice?.company?.address || ''}
-
-</p>
-
-<p className="text-sm text-gray-600">
-
-PIN: {invoice?.company?.kraPin || ''}
-
-</p>
-
-</div>
+                  <div className="flex flex-col">
+                    <div className="w-48 h-48 mb-4 overflow-hidden flex items-center justify-center">
+                      {invoice?.company?.logoUrl ? (
+                        <img
+                          src={invoice.company.logoUrl}
+                          alt="Company Logo"
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            console.error('Logo failed:', invoice.company.logoUrl);
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400 font-bold border-2 border-dashed rounded-lg">
+                          LOGO
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   <div className="text-right">
-                    <h2 className="text-3xl font-bold uppercase mb-2" style={{ color: primaryColor }}>
+                    <h2 className="text-5xl font-extrabold uppercase mb-2 tracking-tight" style={{ color: primaryColor }}>
                       {invoice.type.replace(/_/g, ' ')}
                     </h2>
-                    <p className="text-sm font-bold"># {invoice.invoiceNumber}</p>
-                    <p className="text-sm text-gray-600">Date: {new Date(invoice.issueDate).toLocaleDateString()}</p>
-                    {invoice.dueDate && <p className="text-sm text-gray-600">Due: {new Date(invoice.dueDate).toLocaleDateString()}</p>}
+                    <h1 className="text-2xl font-bold text-gray-900 mt-4">
+                      {invoice?.company?.name || 'Jolu Group'}
+                    </h1>
+                    <p className="text-sm text-gray-600">{invoice?.company?.address || 'Nairobi, Kenya'}</p>
+                    <p className="text-sm text-gray-600">T: {invoice?.company?.phone}</p>
+                    <p className="text-sm text-gray-600">Email: {invoice?.company?.email}</p>
+                    {invoice?.company?.ccEmail && <p className="text-sm text-gray-600">CC: {invoice?.company?.ccEmail}</p>}
+                    {invoice?.company?.website && <p className="text-sm text-gray-600">Website: {invoice?.company?.website}</p>}
+
+                    <div className="mt-6 space-y-1">
+                      <div className="flex justify-end gap-8">
+                        <span className="text-sm text-gray-600">{invoice.type.replace(/_/g, ' ')} No:</span>
+                        <span className="text-sm font-bold">{invoice.invoiceNumber}</span>
+                      </div>
+                      <div className="flex justify-end gap-8">
+                        <span className="text-sm text-gray-600">{invoice.type.replace(/_/g, ' ')} Date:</span>
+                        <span className="text-sm font-bold">{new Date(invoice.issueDate).toLocaleDateString('en-GB')}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="mb-8 mt-4 border-t pt-4">
-                  <h3 className="text-xs font-bold uppercase text-gray-400 mb-2">Bill To</h3>
-                  <p className="font-bold text-lg">{invoice.customer?.name || invoice.securityClient?.name}</p>
-                  <p className="text-sm text-gray-600">{invoice.customer?.phone || invoice.securityClient?.phone}</p>
-                  <p className="text-sm text-gray-600">{invoice.customer?.email || invoice.securityClient?.email}</p>
+                <div className="mb-8 mt-4">
+                  <h3 className="text-sm text-gray-600 mb-1">Bill to:</h3>
+                  <p className="font-black text-xl text-black">{invoice.customer?.name?.toUpperCase() || invoice.securityClient?.name?.toUpperCase()}</p>
+                  <p className="text-sm text-gray-600">{invoice.customer?.idNumber ? `ID: ${invoice.customer.idNumber}` : ''}</p>
                   <p className="text-sm text-gray-600">{invoice.customer?.physicalAddress || invoice.securityClient?.address}</p>
                 </div>
 
@@ -249,12 +242,68 @@ PIN: {invoice?.company?.kraPin || ''}
                   </div>
                 </div>
 
-                <div className="mt-8 pt-8 border-t">
-                  <h4 className="text-xs font-bold uppercase text-gray-400 mb-3">Notes & Terms</h4>
-                  <div className="text-[11px] text-gray-600 whitespace-pre-wrap leading-relaxed bg-gray-50 p-4 rounded-lg">
-                    {invoice.notes}
+                <div className="mt-8 pt-8 border-t grid grid-cols-2 gap-8">
+                  <div>
+                    <h4 className="text-xs font-bold uppercase text-gray-400 mb-3">Bank Details</h4>
+                    <div className="text-[11px] text-gray-600 space-y-1">
+                      {invoice.company.code === 'SECURITY' ? (
+                        <>
+                          <p><span className="font-bold">Account Name:</span> Jolu Group Security Ltd</p>
+                          <p><span className="font-bold">Account Number:</span> 0112099542001</p>
+                          <p><span className="font-bold">Bank Name:</span> Co-operative Bank</p>
+                          <p><span className="font-bold">Branch:</span> Upper Hill (011)</p>
+                        </>
+                      ) : invoice.company.code === 'AUTOMOBILE' ? (
+                        <>
+                          <p><span className="font-bold">Account Name:</span> Jolu Automobile Limited</p>
+                          <p><span className="font-bold">Account Number:</span> 3012099542003</p>
+                          <p><span className="font-bold">Bank Name:</span> Kingdom Bank</p>
+                          <p><span className="font-bold">Branch:</span> Thika (301)</p>
+                        </>
+                      ) : (
+                        <>
+                          <p><span className="font-bold">Account Name:</span> Jolu Agricultural Machineries Ltd</p>
+                          <p><span className="font-bold">Account Number:</span> 3012099542002</p>
+                          <p><span className="font-bold">Bank Name:</span> Kingdom Bank</p>
+                          <p><span className="font-bold">Branch:</span> Thika (301)</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold uppercase text-gray-400 mb-3">MPESA Details</h4>
+                    <div className="text-[11px] text-gray-600 space-y-1">
+                      {invoice.company.code === 'SECURITY' ? (
+                        <>
+                          <p><span className="font-bold">Paybill:</span> 400200</p>
+                          <p><span className="font-bold">Account:</span> 011929954200</p>
+                          <p><span className="font-bold">Name:</span> Jolu Security Services</p>
+                        </>
+                      ) : invoice.company.code === 'AUTOMOBILE' ? (
+                        <>
+                          <p><span className="font-bold">Paybill:</span> 529901</p>
+                          <p><span className="font-bold">Account:</span> 062016</p>
+                          <p><span className="font-bold">Name:</span> {invoice.company.legalName}</p>
+                        </>
+                      ) : (
+                        <>
+                          <p><span className="font-bold">Paybill:</span> 529901</p>
+                          <p><span className="font-bold">Account:</span> 062015</p>
+                          <p><span className="font-bold">Name:</span> {invoice.company.legalName}</p>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
+
+                {invoice.notes && (
+                  <div className="mt-4">
+                    <h4 className="text-xs font-bold uppercase text-gray-400 mb-2">Notes</h4>
+                    <div className="text-[11px] text-gray-600 whitespace-pre-wrap bg-gray-50 p-2 rounded">
+                      {invoice.notes}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
