@@ -3,7 +3,7 @@ import { securityApi } from '../services/api';
 import { PageHeader, LoadingSpinner, formatCurrency } from '../components/ui/Shared';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { Plus, Receipt, Download, Upload, FileText } from 'lucide-react';
+import { Plus, Receipt, FileText } from 'lucide-react';
 import InvoiceModal from '../components/InvoiceModal';
 import { invoiceApi, importExportApi } from '../services/api';
 
@@ -72,52 +72,9 @@ export default function SecurityPage() {
         title="Jolu Security Module" 
         subtitle="Clients, contracts, guards, and deployments" 
         actions={
-          <div className="flex gap-2">
-             <button onClick={() => {
-              const input = document.createElement('input');
-              input.type = 'file';
-              input.accept = '.csv,.xlsx';
-              input.onchange = (e) => {
-                const file = (e.target as HTMLInputElement).files?.[0];
-                if (file) {
-                  const formData = new FormData();
-                  formData.append('file', file);
-                  formData.append('entity', tab === 'clients' ? 'security-clients' : tab === 'guards' ? 'guards' : '');
-                  if (formData.get('entity')) {
-                    toast.promise(importExportApi.import(formData), {
-                      loading: 'Importing...',
-                      success: () => {
-                        queryClient.invalidateQueries({ queryKey: [`sec-${tab}`] });
-                        return 'Import successful';
-                      },
-                      error: 'Import failed',
-                    });
-                  }
-                }
-              };
-              input.click();
-            }} className="btn-secondary flex items-center gap-2">
-              <Upload className="w-4 h-4" /> Import
-            </button>
-            <button onClick={() => {
-              const entity = tab === 'clients' ? 'security-clients' : tab === 'guards' ? 'guards' : '';
-              if (entity) {
-                toast.promise(importExportApi.export(entity, 'xlsx'), {
-                  loading: 'Exporting...',
-                  success: (res) => {
-                    window.open(res.data.data, '_blank');
-                    return 'Export successful';
-                  },
-                  error: 'Export failed',
-                });
-              }
-            }} className="btn-secondary flex items-center gap-2">
-              <Download className="w-4 h-4" /> Export
-            </button>
-            <button onClick={() => { setShowForm(true); setFormData({}); }} className="btn-primary flex items-center gap-2">
-              <Plus className="w-4 h-4" /> Add {tab.slice(0, -1)}
-            </button>
-          </div>
+          <button onClick={() => { setShowForm(true); setFormData({}); }} className="btn-primary flex items-center gap-2">
+            <Plus className="w-4 h-4" /> Add {tab.slice(0, -1)}
+          </button>
         }
       />
 
@@ -150,7 +107,10 @@ export default function SecurityPage() {
                     </select>
                   </div>
                   <div><label className="label">Monthly Fee</label><input className="input" type="number" onChange={e => setFormData({...formData, monthlyFee: Number(e.target.value)})} /></div>
-                  <div><label className="label">Start Date</label><input className="input" type="date" onChange={e => setFormData({...formData, startDate: new Date(e.target.value)})} /></div>
+                  <div><label className="label">Guards Count</label><input className="input" type="number" onChange={e => setFormData({...formData, guardsCount: Number(e.target.value)})} /></div>
+                  <div><label className="label">Start Date</label><input className="input" type="date" onChange={e => setFormData({...formData, startDate: e.target.value})} /></div>
+                  <div><label className="label">End Date (Optional)</label><input className="input" type="date" onChange={e => setFormData({...formData, endDate: e.target.value})} /></div>
+                  <div className="col-span-2"><label className="label">Terms</label><textarea rows={2} className="input" onChange={e => setFormData({...formData, terms: e.target.value})} /></div>
                   <div>
                     <label className="label">Contract File (PDF)</label>
                     <input type="file" accept=".pdf" className="input" onChange={e => setFormData({...formData, file: e.target.files?.[0]})} />
@@ -162,7 +122,9 @@ export default function SecurityPage() {
                   <div><label className="label">First Name</label><input className="input" onChange={e => setFormData({...formData, firstName: e.target.value})} /></div>
                   <div><label className="label">Last Name</label><input className="input" onChange={e => setFormData({...formData, lastName: e.target.value})} /></div>
                   <div><label className="label">Employee No</label><input className="input" onChange={e => setFormData({...formData, employeeNo: e.target.value})} /></div>
+                  <div><label className="label">ID Number</label><input className="input" onChange={e => setFormData({...formData, idNumber: e.target.value})} /></div>
                   <div><label className="label">Phone</label><input className="input" onChange={e => setFormData({...formData, phone: e.target.value})} /></div>
+                  <div><label className="label">License No</label><input className="input" onChange={e => setFormData({...formData, licenseNo: e.target.value})} /></div>
                 </>
               )}
               {tab === 'sites' && (

@@ -51,8 +51,22 @@ router.post('/contracts', requirePermission('security', 'create'), upload.single
     fileUrl = `/uploads/contracts/${fileName}`;
   }
 
+  const { clientId, startDate, endDate, monthlyFee, guardsCount, terms, status, customerId } = req.body;
+
   const contract = await prisma.securityContract.create({
-    data: { ...req.body, companyId: req.companyId!, contractNumber, fileUrl },
+    data: {
+      companyId: req.companyId!,
+      contractNumber,
+      clientId,
+      customerId: customerId || undefined,
+      startDate: new Date(startDate),
+      endDate: endDate ? new Date(endDate) : undefined,
+      monthlyFee: Number(monthlyFee),
+      guardsCount: guardsCount ? parseInt(guardsCount, 10) : 1,
+      terms,
+      status: status || 'ACTIVE',
+      fileUrl,
+    },
   });
   res.status(201).json({ success: true, data: contract });
 });

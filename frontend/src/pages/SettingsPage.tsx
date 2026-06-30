@@ -60,6 +60,8 @@ export default function SettingsPage() {
                   <option value="leads">Leads</option>
                   <option value="inventory">Inventory</option>
                   <option value="spare-parts">Spare Parts</option>
+                  <option value="security-clients">Security Clients</option>
+                  <option value="guards">Guards</option>
                 </select>
               </div>
               <div>
@@ -74,7 +76,7 @@ export default function SettingsPage() {
         <div className="card">
           <h3 className="font-semibold mb-4">Export Data</h3>
           <div className="space-y-4">
-            {['customers', 'leads', 'inventory', 'spare-parts', 'invoices'].map(entity => (
+            {['customers', 'leads', 'inventory', 'spare-parts', 'invoices', 'security-clients', 'guards'].map(entity => (
               <div key={entity} className="flex items-center justify-between py-2 border-b last:border-0">
                 <span className="capitalize">{entity.replace('-', ' ')}</span>
                 <div className="flex gap-2">
