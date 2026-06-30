@@ -4,7 +4,7 @@ import { stringify } from 'csv-stringify/sync';
 import prisma from '../config/database';
 import fs from 'fs';
 
-type EntityType = 'customers' | 'leads' | 'inventory' | 'spare-parts' | 'invoices';
+type EntityType = 'customers' | 'leads' | 'inventory' | 'spare-parts' | 'invoices' | 'security-clients' | 'guards';
 
 export async function importData(
   companyId: string,
@@ -78,74 +78,51 @@ console.log('First Record:', records[0]);
         }
         break;
 
-case 'inventory':
-  for (const row of records) {
-    const costPrice = Number(
-      String(row.costPrice || row['Cost Price'] || '0')
-        .replace(/,/g, '')
-        .replace(/"/g, '')
-    );
+      case 'inventory':
+        for (const row of records) {
+          const costPrice = Number(
+            String(row.costPrice || row['Cost Price'] || '0')
+              .replace(/,/g, '')
+              .replace(/"/g, '')
+          );
 
-    const sellingPrice = Number(
-      String(row.sellingPrice || row['Selling Price'] || '0')
-        .replace(/,/g, '')
-        .replace(/"/g, '')
-    );
+          const sellingPrice = Number(
+            String(row.sellingPrice || row['Selling Price'] || '0')
+              .replace(/,/g, '')
+              .replace(/"/g, '')
+          );
 
-    const chassisNumber =
-      row.chassisNumber || row['Chassis Number'] || '';
+          const chassisNumber = row.chassisNumber || row['Chassis Number'] || '';
+          const serialNumber = row.serialNumber || row['Serial Number'] || chassisNumber;
 
-    const serialNumber =
-      row.serialNumber ||
-      row['Serial Number'] ||
-      chassisNumber;
+          if (chassisNumber) {
+            const existing = await prisma.machineryUnit.findFirst({
+              where: { companyId, chassisNumber },
+            });
+            if (existing) {
+              console.log(`Skipping duplicate chassis number: ${chassisNumber}`);
+              continue;
+            }
+          }
 
-const existing = await prisma.machineryUnit.findFirst({
-  where: {
-    companyId,
-    chassisNumber,
-  },
-});
+          await prisma.machineryUnit.create({
+            data: {
+              companyId,
+              productName: row.productName || row['Product Name'] || 'Unknown Unit',
+              category: (row.category || row.Category || 'TRACTOR').toUpperCase() as any,
+              brand: row.brand || row.Brand || 'Generic',
+              model: row.model || row.Model || '',
+              chassisNumber,
+              engineNumber: row.engineNumber || row['Engine Number'] || '',
+              serialNumber,
+              costPrice: isNaN(costPrice) ? 0 : costPrice,
+              sellingPrice: isNaN(sellingPrice) ? 0 : sellingPrice,
+            },
+          });
 
-if (existing) {
-  console.log(
-    `Skipping duplicate chassis number: ${chassisNumber}`
-  );
-  continue;
-}
-
-await prisma.machineryUnit.create({
-  data: {
-    companyId,
-    productName: row.productName || row['Product Name'],
-    category: (
-      row.category ||
-      row.Category ||
-      'TRACTOR'
-    ).toUpperCase() as any,
-    brand:
-      row.brand ||
-      row.Brand ||
-      'Zoomlion',
-    model: row.model || row.Model || '',
-    chassisNumber,
-    engineNumber:
-      row.engineNumber ||
-      row['Engine Number'] ||
-      '',
-    serialNumber,
-    costPrice: isNaN(costPrice)
-      ? 0
-      : costPrice,
-    sellingPrice: isNaN(sellingPrice)
-      ? 0
-      : sellingPrice,
-  },
-});
-
-imported++;
-  }
-  break;
+          imported++;
+        }
+        break;
   
       case 'spare-parts':
         for (const row of records) {
@@ -160,6 +137,40 @@ imported++;
               costPrice: parseFloat(row.costPrice || row['Cost Price'] || '0'),
               sellingPrice: parseFloat(row.sellingPrice || row['Selling Price'] || '0'),
               reorderLevel: parseInt(row.reorderLevel || row['Reorder Level'] || '10', 10),
+            },
+          });
+          imported++;
+        }
+        break;
+
+      case 'security-clients':
+        for (const row of records) {
+          await prisma.securityClient.create({
+            data: {
+              companyId,
+              name: row.name || row.Name,
+              contactPerson: row.contactPerson || row['Contact Person'],
+              phone: row.phone || row.Phone,
+              email: row.email || row.Email,
+              address: row.address || row.Address,
+              kraPin: row.kraPin || row['KRA PIN'],
+            },
+          });
+          imported++;
+        }
+        break;
+
+      case 'guards':
+        for (const row of records) {
+          await prisma.guard.create({
+            data: {
+              companyId,
+              employeeNo: row.employeeNo || row['Employee No'],
+              firstName: row.firstName || row['First Name'],
+              lastName: row.lastName || row['Last Name'],
+              phone: row.phone || row.Phone,
+              idNumber: row.idNumber || row['ID Number'],
+              licenseNo: row.licenseNo || row['License No'],
             },
           });
           imported++;
@@ -223,6 +234,12 @@ export async function exportData(
       break;
     case 'invoices':
       data = await prisma.invoice.findMany({ where: { companyId } });
+      break;
+    case 'security-clients':
+      data = await prisma.securityClient.findMany({ where: { companyId } });
+      break;
+    case 'guards':
+      data = await prisma.guard.findMany({ where: { companyId } });
       break;
   }
 

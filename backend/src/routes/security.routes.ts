@@ -1,14 +1,25 @@
 import { Router, Response } from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import prisma from '../config/database';
 import { AuthRequest, authenticate, requireCompany, requirePermission } from '../middleware/auth';
 
 const router = Router();
+const uploadDir = path.join(process.cwd(), 'uploads', 'contracts');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+const upload = multer({ dest: uploadDir });
+
 router.use(authenticate, requireCompany);
 
 router.get('/clients', requirePermission('security', 'read'), async (req: AuthRequest, res: Response) => {
   const clients = await prisma.securityClient.findMany({
     where: { companyId: req.companyId! },
-    include: { _count: { select: { contracts: true, sites: true } } },
+    include: {
+      _count: { select: { contracts: true, sites: true } },
+      contracts: true
+    },
   });
   res.json({ success: true, data: clients });
 });
@@ -28,12 +39,34 @@ router.get('/contracts', requirePermission('security', 'read'), async (req: Auth
   res.json({ success: true, data: contracts });
 });
 
-router.post('/contracts', requirePermission('security', 'create'), async (req: AuthRequest, res: Response) => {
+router.post('/contracts', requirePermission('security', 'create'), upload.single('file'), async (req: AuthRequest, res: Response) => {
   const count = await prisma.securityContract.count();
   const contractNumber = `SEC-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
 
+  let fileUrl = undefined;
+  if (req.file) {
+    const fileName = `${contractNumber}-${req.file.originalname}`;
+    const filePath = path.join(uploadDir, fileName);
+    fs.renameSync(req.file.path, filePath);
+    fileUrl = `/uploads/contracts/${fileName}`;
+  }
+
+  const { clientId, startDate, endDate, monthlyFee, guardsCount, terms, status, customerId } = req.body;
+
   const contract = await prisma.securityContract.create({
-    data: { ...req.body, companyId: req.companyId!, contractNumber },
+    data: {
+      companyId: req.companyId!,
+      contractNumber,
+      clientId,
+      customerId: customerId || undefined,
+      startDate: new Date(startDate),
+      endDate: endDate ? new Date(endDate) : undefined,
+      monthlyFee: Number(monthlyFee),
+      guardsCount: guardsCount ? parseInt(guardsCount, 10) : 1,
+      terms,
+      status: status || 'ACTIVE',
+      fileUrl,
+    },
   });
   res.status(201).json({ success: true, data: contract });
 });

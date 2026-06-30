@@ -49,24 +49,31 @@ export async function generateInvoicePDF(invoiceId: string, options: PDFOptions 
 
 const headerY = 50;
 
-try {
-  const logoPath = path.join(
-    process.cwd(),
-    'uploads',
-    'logos',
-    'machineries.png'
-  );
+    if (invoice.company.logoUrl) {
+      try {
+        // Remove leading slash if present to avoid path.join issues on some systems
+        const logoRelativePath = invoice.company.logoUrl.startsWith('/')
+          ? invoice.company.logoUrl.substring(1)
+          : invoice.company.logoUrl;
 
-  if (fs.existsSync(logoPath)) {
-    doc.image(logoPath, 50, headerY, {
-      width: 140,
-    });
-  } else {
-    console.log('Logo not found:', logoPath);
-  }
-} catch (error) {
-  console.error('Logo loading failed:', error);
-}
+        // If it's a URL, we might need to download it, but for local files:
+        const logoPath = path.join(process.cwd(), logoRelativePath);
+
+        if (fs.existsSync(logoPath)) {
+          doc.image(logoPath, 50, headerY, { width: 140 });
+        } else {
+          // Try without the 'backend/' prefix if it was incorrectly added
+          const altPath = path.join(process.cwd(), logoRelativePath.replace(/^backend\//, ''));
+          if (fs.existsSync(altPath)) {
+             doc.image(altPath, 50, headerY, { width: 140 });
+          } else {
+            console.warn('Logo not found at:', logoPath, 'or', altPath);
+          }
+        }
+      } catch (error) {
+        console.error('Logo loading failed:', error);
+      }
+    }
 
     doc.fontSize(24).font('Helvetica-Bold').fillColor(primaryColor).text(formatInvoiceType(invoice.type), 300, headerY, { align: 'right' });
     

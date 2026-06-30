@@ -16,7 +16,7 @@ router.use(authenticate, requireCompany);
 router.post('/import', requirePermission('importexport', 'create'), upload.single('file'), async (req: AuthRequest, res: Response) => {
   if (!req.file) return res.status(400).json({ error: 'File required' });
 
-  const entity = req.body.entity as 'customers' | 'leads' | 'inventory' | 'spare-parts';
+  const entity = req.body.entity as 'customers' | 'leads' | 'inventory' | 'spare-parts' | 'security-clients' | 'guards';
   const format = req.file.originalname.endsWith('.xlsx') ? 'xlsx' : 'csv';
 
   const result = await importData(req.companyId!, entity, req.file.path, format, req.user!.id);
@@ -24,7 +24,7 @@ router.post('/import', requirePermission('importexport', 'create'), upload.singl
 });
 
 router.get('/export', requirePermission('importexport', 'read'), async (req: AuthRequest, res: Response) => {
-  const entity = req.query.entity as 'customers' | 'leads' | 'inventory' | 'spare-parts' | 'invoices';
+  const entity = req.query.entity as 'customers' | 'leads' | 'inventory' | 'spare-parts' | 'invoices' | 'security-clients' | 'guards';
   const format = (req.query.format as 'csv' | 'xlsx') || 'xlsx';
 
   const fileUrl = await exportData(req.companyId!, entity, format, req.user!.id);

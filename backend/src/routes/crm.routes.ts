@@ -203,8 +203,26 @@ router.post('/leads/:id/convert', requirePermission('crm', 'update'), async (req
     where: { id: lead.id },
     data: { 
       pipelineStage: 'WON',
-      stage: 'DELIVERED', // Or appropriate next stage
+      stage: 'DELIVERED',
       wonAt: new Date(),
+    }
+  });
+
+  // Ensure customer is active
+  await prisma.customer.update({
+    where: { id: customer.id },
+    data: { isActive: true }
+  });
+
+  // Log activity
+  await prisma.activity.create({
+    data: {
+      type: 'NOTE',
+      subject: 'Lead Converted',
+      description: `Lead "${lead.title}" was successfully converted to a deal.`,
+      leadId: lead.id,
+      customerId: customer.id,
+      userId: req.user!.id,
     }
   });
 
