@@ -57,6 +57,8 @@ export default function ServicePage() {
                   </div>
                   <p className="font-medium mb-2">{ticket.problem}</p>
                   {ticket.customer && <p className="text-sm text-gray-600">{ticket.customer.name} · {ticket.customer.phone}</p>}
+                  {ticket.machineryUnit && <p className="text-sm text-gray-500 mt-1">Unit: {ticket.machineryUnit.productName} ({ticket.machineryUnit.serialNumber})</p>}
+                  {ticket.vehicle && <p className="text-sm text-gray-500 mt-1">Vehicle: {ticket.vehicle.make} {ticket.vehicle.model} ({ticket.vehicle.registrationNumber})</p>}
                   {ticket.technician && <p className="text-sm text-jolu-600 mt-2">Tech: {ticket.technician.firstName} {ticket.technician.lastName}</p>}
                 </div>
                 

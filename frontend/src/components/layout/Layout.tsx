@@ -19,8 +19,8 @@ const navItems = [
   { to: '/inventory', icon: Package, label: 'Inventory' },
   { to: '/invoices', icon: FileText, label: 'Invoices' },
   { to: '/accounting', icon: Calculator, label: 'Accounting' },
-  { to: '/financing', icon: Landmark, label: 'Bank Financing' },
-  { to: '/service', icon: Wrench, label: 'After Sales' },
+  { to: '/financing', icon: Landmark, label: 'Bank Financing', companies: ['MACHINERIES', 'AUTOMOBILE'] },
+  { to: '/service', icon: Wrench, label: 'After Sales', companies: ['MACHINERIES', 'AUTOMOBILE'] },
   { to: '/security', icon: Shield, label: 'Security Module', companies: ['SECURITY'] },
   { to: '/petty-cash', icon: Wallet, label: 'Petty Cash' },
   { to: '/users', icon: Users, label: 'User Management', roles: ['SUPER_ADMIN', 'GROUP_ADMIN', 'COMPANY_ADMIN'] },
@@ -50,6 +50,7 @@ export default function Layout() {
   const filteredNav = navItems.filter((item) => {
     if (item.roles && !item.roles.includes(user?.role || '')) return false;
     if (item.companies && currentCompany && !item.companies.includes(currentCompany.code)) return false;
+    // Special case for inventory label if needed, but keeping it simple for now
     return true;
   });
 

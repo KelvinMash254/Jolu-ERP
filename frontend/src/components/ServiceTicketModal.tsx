@@ -12,6 +12,7 @@ interface ServiceTicketModalProps {
 export default function ServiceTicketModal({ isOpen, onClose, onSubmit }: ServiceTicketModalProps) {
   const [customerId, setCustomerId] = useState('');
   const [machineryUnitId, setMachineryUnitId] = useState('');
+  const [vehicleId, setVehicleId] = useState('');
   const [problem, setProblem] = useState('');
 
   const { data: customersData } = useQuery({
@@ -26,14 +27,22 @@ export default function ServiceTicketModal({ isOpen, onClose, onSubmit }: Servic
     enabled: isOpen,
   });
 
+  const { data: vehiclesData } = useQuery({
+    queryKey: ['vehicles'],
+    queryFn: () => inventoryApi.getVehicles(),
+    enabled: isOpen,
+  });
+
   const customers = customersData?.data?.data || [];
-  const machinery = machineryData?.data?.data?.data || [];
+  const machinery = machineryData?.data?.data || [];
+  const vehicles = vehiclesData?.data?.data || [];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({
       customerId,
       machineryUnitId: machineryUnitId || undefined,
+      vehicleId: vehicleId || undefined,
       problem,
     });
   };
@@ -70,12 +79,26 @@ export default function ServiceTicketModal({ isOpen, onClose, onSubmit }: Servic
             <label className="block text-sm font-medium text-gray-700 mb-1">Machinery Unit (Optional)</label>
             <select 
               value={machineryUnitId} 
-              onChange={(e) => setMachineryUnitId(e.target.value)}
+              onChange={(e) => { setMachineryUnitId(e.target.value); if (e.target.value) setVehicleId(''); }}
               className="w-full rounded-lg border-gray-300 shadow-sm focus:border-jolu-500 focus:ring-jolu-500"
             >
               <option value="">Select Unit</option>
               {machinery.map((m: any) => (
                 <option key={m.id} value={m.id}>{m.productName} ({m.serialNumber || m.chassisNumber})</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle (Optional)</label>
+            <select 
+              value={vehicleId} 
+              onChange={(e) => { setVehicleId(e.target.value); if (e.target.value) setMachineryUnitId(''); }}
+              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-jolu-500 focus:ring-jolu-500"
+            >
+              <option value="">Select Vehicle</option>
+              {vehicles.map((v: any) => (
+                <option key={v.id} value={v.id}>{v.make} {v.model} ({v.registrationNumber})</option>
               ))}
             </select>
           </div>

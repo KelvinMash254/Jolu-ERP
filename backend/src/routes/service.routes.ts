@@ -15,6 +15,7 @@ router.get('/', requirePermission('aftersales', 'read'), async (req: AuthRequest
     include: {
       customer: { select: { id: true, name: true, phone: true } },
       machineryUnit: { select: { id: true, productName: true, serialNumber: true } },
+      vehicle: { select: { id: true, make: true, model: true, registrationNumber: true } },
       technician: { select: { id: true, firstName: true, lastName: true } },
       sparePartsUsed: { include: { sparePart: true } },
     },
@@ -25,11 +26,19 @@ router.get('/', requirePermission('aftersales', 'read'), async (req: AuthRequest
 });
 
 router.post('/', requirePermission('aftersales', 'create'), async (req: AuthRequest, res: Response) => {
+  const { customerId, machineryUnitId, vehicleId, problem } = req.body;
   const count = await prisma.serviceTicket.count({ where: { companyId: req.companyId! } });
   const ticketNumber = `SRV-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
 
   const ticket = await prisma.serviceTicket.create({
-    data: { ...req.body, companyId: req.companyId!, ticketNumber },
+    data: {
+      companyId: req.companyId!,
+      ticketNumber,
+      customerId,
+      machineryUnitId: machineryUnitId || null,
+      vehicleId: vehicleId || null,
+      problem,
+    },
   });
 
   res.status(201).json({ success: true, data: ticket });

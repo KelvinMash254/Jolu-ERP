@@ -51,8 +51,10 @@ export const inventoryApi = {
   getMachinery: (params?: Record<string, string>) => api.get('/inventory/machinery', { params }),
   createMachinery: (data: object) => api.post('/inventory/machinery', data),
   getSpareParts: () => api.get('/inventory/spare-parts'),
+  createSparePart: (data: object) => api.post('/inventory/spare-parts', data),
   getLowStock: () => api.get('/inventory/spare-parts/low-stock'),
   getVehicles: () => api.get('/inventory/vehicles'),
+  createVehicle: (data: object) => api.post('/inventory/vehicles', data),
 };
 
 export const invoiceApi = {
@@ -87,6 +89,7 @@ export const securityApi = {
   getGuards: () => api.get('/security/guards'),
   createGuard: (data: object) => api.post('/security/guards', data),
   getSites: () => api.get('/security/sites'),
+  createSite: (data: object) => api.post('/security/sites', data),
 };
 
 export const financingApi = {
