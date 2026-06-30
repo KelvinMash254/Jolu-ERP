@@ -33,12 +33,12 @@ export async function generateInvoicePDF(invoiceId: string, options: PDFOptions 
   
   // Default colors per company
   const companyColors: Record<string, string> = {
-    MACHINERIES: '#0ea5e9', // Jolu Blue
-    SECURITY: '#1e293b',    // Slate Dark
-    AUTOMOBILE: '#dc2626',   // Red
+    MACHINERIES: '#85be00', // Lime Green
+    SECURITY: '#e82126',    // Bright Red
+    AUTOMOBILE: '#e82126',  // Bright Red
   };
 
-  const primaryColor = options.primaryColor || companyColors[invoice.company.code] || '#0ea5e9';
+  const primaryColor = options.primaryColor || companyColors[invoice.company.code] || '#85be00';
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
@@ -179,8 +179,8 @@ if (
     const tableTop = doc.y;
     
     // Draw table header
-    doc.rect(50, tableTop, 500, 20).fill('#d9ead3').stroke('#000000');
-    doc.fillColor('#000000').font('Helvetica-Bold').fontSize(10);
+    doc.rect(50, tableTop, 500, 20).fill(primaryColor);
+    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(10);
     doc.text('Details', 55, tableTop + 5, { width: 220, align: 'center' });
     doc.text('Quantity', 275, tableTop + 5, { width: 80, align: 'center' });
     doc.text('Unit Price', 355, tableTop + 5, { width: 90, align: 'center' });
@@ -206,9 +206,9 @@ if (
     }
 
     // Total row
-    doc.rect(355, y, 90, 25).fill('#d9ead3').stroke('#000000');
-    doc.rect(445, y, 105, 25).fill('#d9ead3').stroke('#000000');
-    doc.fillColor('#000000').font('Helvetica-Bold');
+    doc.rect(355, y, 90, 25).fill(primaryColor);
+    doc.rect(445, y, 105, 25).fill(primaryColor);
+    doc.fillColor('#ffffff').font('Helvetica-Bold');
     doc.text('Total', 360, y + 7, { width: 80, align: 'center' });
     doc.text(`KES ${Number(invoice.totalAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 445, y + 7, { width: 100, align: 'right' });
 

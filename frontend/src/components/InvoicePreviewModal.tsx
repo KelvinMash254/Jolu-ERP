@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Download, Send, Palette } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { invoiceApi } from '../services/api';
@@ -20,7 +20,7 @@ const COLORS = [
 ];
 
 export default function InvoicePreviewModal({ isOpen, onClose, invoiceId }: InvoicePreviewModalProps) {
-  const [primaryColor, setPrimaryColor] = useState('#15803d');
+  const [primaryColor, setPrimaryColor] = useState('#85be00');
 
   const { data: invoiceData, isLoading } = useQuery({
     queryKey: ['invoice', invoiceId],
@@ -45,9 +45,21 @@ const sendEmailMutation = useMutation({
   },
 });
 
-  if (!isOpen) return null;
-
   const invoice = invoiceData?.data?.data;
+
+  useEffect(() => {
+    if (invoice?.company?.code) {
+      const companyColors: Record<string, string> = {
+        MACHINERIES: '#85be00', // Lime Green
+        SECURITY: '#e82126',    // Bright Red
+        AUTOMOBILE: '#e82126',  // Bright Red
+      };
+      const color = companyColors[invoice.company.code] || '#85be00';
+      setPrimaryColor(color);
+    }
+  }, [invoice]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
