@@ -591,6 +591,7 @@ model SecurityContract {
   guardsCount  Int      @default(1)
   terms        String?
   status       String   @default("ACTIVE")
+  fileUrl      String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

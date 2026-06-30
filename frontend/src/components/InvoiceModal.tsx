@@ -139,19 +139,39 @@ export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }:
             )}
 
             {currentCompany?.code === 'SECURITY' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Security Client</label>
-                <select 
-                  value={securityClientId} 
-                  onChange={(e) => setSecurityClientId(e.target.value)}
-                  className="w-full rounded-lg border-gray-300 shadow-sm focus:border-jolu-500 focus:ring-jolu-500"
-                >
-                  <option value="">Select Security Client</option>
-                  {securityClients.map((c: any) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Security Client</label>
+                  <select 
+                    value={securityClientId} 
+                    onChange={(e) => {
+                      setSecurityClientId(e.target.value);
+                      setContractId('');
+                    }}
+                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-jolu-500 focus:ring-jolu-500"
+                  >
+                    <option value="">Select Security Client</option>
+                    {securityClients.map((c: any) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {securityClientId && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Contract</label>
+                    <select 
+                      value={contractId} 
+                      onChange={(e) => setContractId(e.target.value)}
+                      className="w-full rounded-lg border-gray-300 shadow-sm focus:border-jolu-500 focus:ring-jolu-500"
+                    >
+                      <option value="">Select Contract</option>
+                      {securityClients.find((c: any) => c.id === securityClientId)?.contracts?.map((con: any) => (
+                        <option key={con.id} value={con.id}>{con.contractNumber}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
