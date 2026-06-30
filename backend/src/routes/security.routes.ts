@@ -2,10 +2,24 @@ import { Router, Response } from 'express';
 import prisma from '../config/database';
 import { AuthRequest, authenticate, requireCompany, requirePermission } from '../middleware/auth';
 import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
-const upload = multer({
-  dest: 'uploads/contracts/',
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = 'uploads/contracts/';
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  },
 });
+
+const upload = multer({ storage });
 
 const router = Router();
 router.use(authenticate, requireCompany);
