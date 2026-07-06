@@ -215,7 +215,7 @@ if (
 
     // Terms and Bank Details
     y += 40;
-    doc.fontSize(10).font('Helvetica-Bold').text('Terms & Conditions', 50, y, { underline: true });
+    doc.fillColor('#000000').fontSize(10).font('Helvetica-Bold').text('Terms & Conditions', 50, y, { underline: true });
     doc.font('Helvetica').fontSize(9);
     doc.text('Prices quoted in Kenya Shilling (KES)', 50, y + 15);
     doc.text('Payment due within 30 Days', 50, y + 27);
@@ -224,7 +224,7 @@ if (
     // Bank Details Table
     const bankTableWidth = 250;
     doc.rect(50, y, bankTableWidth, 15).stroke();
-    doc.font('Helvetica-Bold').text('Bank Details:', 55, y + 3, { width: bankTableWidth - 10, align: 'center' });
+    doc.font('Helvetica-Bold').text('BANK DETAILS', 55, y + 3, { width: bankTableWidth - 10, align: 'center' });
     
     let bankDetails = [
       ['Account Name', 'Jolu Agricultural Machineries Ltd'],
@@ -238,16 +238,14 @@ if (
         ['Account Name', 'Jolu Group Security Ltd'],
         ['Account Number', '0112099542001'],
         ['Bank Name', 'Co-operative Bank'],
-        ['Branch Name', 'Upper Hill'],
-        ['Branch Code', '011']
+        ['Branch', 'Upper Hill (011)']
       ];
     } else if (invoice.company.code === 'AUTOMOBILE') {
       bankDetails = [
         ['Account Name', 'Jolu Automobile Limited'],
         ['Account Number', '3012099542003'],
         ['Bank Name', 'Kingdom Bank'],
-        ['Branch Name', 'Thika'],
-        ['Branch Code', '301']
+        ['Branch', 'Thika (301)']
       ];
     }
 
@@ -262,7 +260,7 @@ if (
     // MPESA Details Table
     y = bankY + 20;
     doc.rect(50, y, bankTableWidth, 15).stroke();
-    doc.font('Helvetica-Bold').text('MPESA Details', 55, y + 3, { width: bankTableWidth - 10, align: 'center' });
+    doc.font('Helvetica-Bold').text('MPESA DETAILS', 55, y + 3, { width: bankTableWidth - 10, align: 'center' });
     
     let mpesaDetails = [
       ['Paybill', '529901'],
@@ -272,15 +270,15 @@ if (
 
     if (invoice.company.code === 'SECURITY') {
       mpesaDetails = [
-        ['MPESA Paybill', '400200'],
-        ['Account Number', '011929954200'],
-        ['Account Name', 'Jolu Security Services']
+        ['Paybill', '400200'],
+        ['Account', '011929954200'],
+        ['Name', 'Jolu Security Services']
       ];
     } else if (invoice.company.code === 'AUTOMOBILE') {
       mpesaDetails = [
-        ['MPESA Paybill', '529901'],
-        ['Account Number', '062016'],
-        ['Account Name', invoice.company.legalName]
+        ['Paybill', '529901'],
+        ['Account', '062016'],
+        ['Name', invoice.company.legalName]
       ];
     }
 

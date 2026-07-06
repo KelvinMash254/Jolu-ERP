@@ -244,7 +244,7 @@ const sendEmailMutation = useMutation({
 
                 <div className="mt-8 pt-8 border-t grid grid-cols-2 gap-8">
                   <div>
-                    <h4 className="text-xs font-bold uppercase text-gray-400 mb-3">Bank Details</h4>
+                    <h4 className="text-xs font-bold uppercase text-gray-400 mb-3 text-left">BANK DETAILS</h4>
                     <div className="text-[11px] text-gray-600 space-y-1">
                       {invoice.company.code === 'SECURITY' ? (
                         <>
@@ -271,7 +271,7 @@ const sendEmailMutation = useMutation({
                     </div>
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold uppercase text-gray-400 mb-3">MPESA Details</h4>
+                    <h4 className="text-xs font-bold uppercase text-gray-400 mb-3 text-left">MPESA DETAILS</h4>
                     <div className="text-[11px] text-gray-600 space-y-1">
                       {invoice.company.code === 'SECURITY' ? (
                         <>
