@@ -33,12 +33,12 @@ export async function generateInvoicePDF(invoiceId: string, options: PDFOptions 
   
   // Default colors per company
   const companyColors: Record<string, string> = {
-    MACHINERIES: '#85be00', // Lime Green
+    MACHINERIES: '#18361e', // Dark Green
     SECURITY: '#e82126',    // Bright Red
     AUTOMOBILE: '#e82126',  // Bright Red
   };
 
-  const primaryColor = options.primaryColor || companyColors[invoice.company.code] || '#85be00';
+  const primaryColor = options.primaryColor || companyColors[invoice.company.code] || '#18361e';
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
@@ -77,7 +77,8 @@ const headerY = 50;
 
     doc.fontSize(28).font('Helvetica-Bold').fillColor(primaryColor).text(formatInvoiceType(invoice.type).toUpperCase(), 300, headerY, { align: 'right' });
     
-    doc.fontSize(14).font('Helvetica-Bold').fillColor('#000000').text(invoice.company.name, 300, doc.y + 5, { align: 'right' });
+    const displayCompanyName = invoice.company.code === 'MACHINERIES' ? 'Jolu Machineries' : invoice.company.name;
+    doc.fontSize(18).font('Helvetica-Bold').fillColor('#000000').text(displayCompanyName, 300, doc.y + 5, { align: 'right' });
     doc.fontSize(9).font('Helvetica').fillColor('#000000').text(invoice.company.address || '', 300, doc.y, { align: 'right' });
     doc.text(`T: ${invoice.company.phone || ''}`, 300, doc.y, { align: 'right' });
     doc.text(`Email: ${invoice.company.email || ''}`, 300, doc.y, { align: 'right', });
@@ -229,8 +230,7 @@ if (
       ['Account Name', 'Jolu Agricultural Machineries Ltd'],
       ['Account Number', '3012099542002'],
       ['Bank Name', 'Kingdom Bank'],
-      ['Branch Name', 'Thika'],
-      ['Branch Code', '301']
+      ['Branch', 'Thika (301)']
     ];
 
     if (invoice.company.code === 'SECURITY') {
@@ -265,9 +265,9 @@ if (
     doc.font('Helvetica-Bold').text('MPESA Details', 55, y + 3, { width: bankTableWidth - 10, align: 'center' });
     
     let mpesaDetails = [
-      ['MPESA Paybill', '529901'],
-      ['Account Number', '062015'],
-      ['Account Name', invoice.company.legalName]
+      ['Paybill', '529901'],
+      ['Account', '062015'],
+      ['Name', 'Jolu Agricultural Machineries Ltd']
     ];
 
     if (invoice.company.code === 'SECURITY') {

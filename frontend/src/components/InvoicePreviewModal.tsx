@@ -50,11 +50,11 @@ const sendEmailMutation = useMutation({
   useEffect(() => {
     if (invoice?.company?.code) {
       const companyColors: Record<string, string> = {
-        MACHINERIES: '#85be00', // Lime Green
+        MACHINERIES: '#18361e', // Dark Green
         SECURITY: '#e82126',    // Bright Red
         AUTOMOBILE: '#e82126',  // Bright Red
       };
-      const color = companyColors[invoice.company.code] || '#85be00';
+      const color = companyColors[invoice.company.code] || '#18361e';
       setPrimaryColor(color);
     }
   }, [invoice]);
@@ -161,8 +161,8 @@ const sendEmailMutation = useMutation({
                     <h2 className="text-5xl font-extrabold uppercase mb-2 tracking-tight" style={{ color: primaryColor }}>
                       {invoice.type.replace(/_/g, ' ')}
                     </h2>
-                    <h1 className="text-2xl font-bold text-gray-900 mt-4">
-                      {invoice?.company?.name || 'Jolu Group'}
+                    <h1 className="text-3xl font-bold text-gray-900 mt-4">
+                      {invoice?.company?.code === 'MACHINERIES' ? 'Jolu Machineries' : invoice?.company?.name || 'Jolu Group'}
                     </h1>
                     <p className="text-sm text-gray-600">{invoice?.company?.address || 'Nairobi, Kenya'}</p>
                     <p className="text-sm text-gray-600">T: {invoice?.company?.phone}</p>
@@ -289,7 +289,7 @@ const sendEmailMutation = useMutation({
                         <>
                           <p><span className="font-bold">Paybill:</span> 529901</p>
                           <p><span className="font-bold">Account:</span> 062015</p>
-                          <p><span className="font-bold">Name:</span> {invoice.company.legalName}</p>
+                          <p><span className="font-bold">Name:</span> Jolu Agricultural Machineries Ltd</p>
                         </>
                       )}
                     </div>
