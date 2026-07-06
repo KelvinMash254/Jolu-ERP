@@ -29,6 +29,10 @@ export const config = {
     apiKey: process.env.SENDGRID_API_KEY || '',
     fromEmail: process.env.SENDGRID_FROM_EMAIL || 'noreply@jolugroup.co.ke',
   },
+  gmail: {
+    user: process.env.GMAIL_USER || '',
+    pass: process.env.GMAIL_APP_PASSWORD || '',
+  },
   mpesa: {
     consumerKey: process.env.MPESA_CONSUMER_KEY || '',
     consumerSecret: process.env.MPESA_CONSUMER_SECRET || '',

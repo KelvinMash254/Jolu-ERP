@@ -122,17 +122,59 @@ router.post('/:id/send', requirePermission('invoices', 'update'), async (req: Au
   const { primaryColor } = req.body;
   const invoice = await prisma.invoice.findFirst({
     where: { id: req.params.id, companyId: req.companyId! },
-    include: { customer: true, company: true },
+    include: { customer: true, securityClient: true, company: true },
   });
   if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
 
   const pdfUrl = await generateInvoicePDF(invoice.id, { primaryColor });
+  const pdfPath = path.join(process.cwd(), pdfUrl.startsWith('/') ? pdfUrl.substring(1) : pdfUrl);
 
-  if (invoice.customer?.email) {
+  const clientName = invoice.customer?.name || invoice.securityClient?.name || 'Valued Client';
+  const clientEmail = invoice.customer?.email || invoice.securityClient?.email;
+  const invoiceTypeStr = invoice.type.replace(/_/g, ' ');
+  const dueDate = invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('en-GB') : 'N/A';
+
+  if (clientEmail) {
+    const subject = `${invoiceTypeStr} for Services Rendered – ${invoiceTypeStr} No. ${invoice.invoiceNumber}`;
+    const text = `
+Subject: ${invoiceTypeStr} for Services Rendered – ${invoiceTypeStr} No. ${invoice.invoiceNumber}
+
+Dear ${clientName},
+
+I hope you are doing well.
+
+Please find attached ${invoiceTypeStr} No. ${invoice.invoiceNumber} for the services rendered/provided as agreed.
+
+${invoiceTypeStr} Summary:
+
+* ${invoiceTypeStr} Number: ${invoice.invoiceNumber}
+* ${invoiceTypeStr} Date: ${new Date(invoice.issueDate).toLocaleDateString('en-GB')}
+* Amount Due: KES ${Number(invoice.totalAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+* Due Date: ${dueDate}
+
+Kindly review the attached ${invoiceTypeStr.toLowerCase()} and arrange payment by the due date. Should you have any questions or require any clarification, please do not hesitate to contact me.
+
+Thank you for your continued trust and business. I look forward to serving you again.
+
+Kind regards,
+
+${req.user?.firstName} ${req.user?.lastName || ''}
+System Administrator
+Jolu Group Limited
+📞 ${invoice.company.phone || '+254 769 281 518'}
+📧 ${invoice.company.email || 'info@jolugroup.co.ke'}
+    `;
+
     await sendEmail(
-      invoice.customer.email,
-      `${invoice.type.replace(/_/g, ' ')} - ${invoice.invoiceNumber}`,
-      `Dear ${invoice.customer.name},\n\nPlease find attached your invoice ${invoice.invoiceNumber} for KES ${Number(invoice.totalAmount).toLocaleString()}.\n\nThank you.\nJolu Group`
+      clientEmail,
+      subject,
+      text,
+      undefined, // Let html be auto-generated from text
+      [{
+        filename: `${invoice.invoiceNumber.replace(/\//g, '-')}.pdf`,
+        path: pdfPath,
+        contentType: 'application/pdf'
+      }]
     );
   }
 
