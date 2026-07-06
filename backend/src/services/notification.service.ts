@@ -1,4 +1,5 @@
 import sgMail from '@sendgrid/mail';
+import nodemailer from 'nodemailer';
 import prisma from '../config/database';
 import { config } from '../config';
 import { NotificationChannel } from '@prisma/client';
@@ -7,21 +8,62 @@ if (config.sendgrid.apiKey) {
   sgMail.setApiKey(config.sendgrid.apiKey);
 }
 
-export async function sendEmail(to: string, subject: string, text: string, html?: string) {
-  if (!config.sendgrid.apiKey) {
-    console.log(`[EMAIL] To: ${to}, Subject: ${subject}`);
-    return { success: true, mock: true };
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: config.gmail.user,
+    pass: config.gmail.pass,
+  },
+});
+
+export interface EmailAttachment {
+  filename: string;
+  path: string;
+  contentType?: string;
+}
+
+export async function sendEmail(
+  to: string,
+  subject: string,
+  text: string,
+  html?: string,
+  attachments?: EmailAttachment[]
+) {
+  // Try Gmail first if configured
+  if (config.gmail.user && config.gmail.pass) {
+    await transporter.sendMail({
+      from: `"Jolu Group" <${config.gmail.user}>`,
+      to,
+      subject,
+      text,
+      html: html || text.replace(/\n/g, '<br>'),
+      attachments,
+    });
+    return { success: true, provider: 'gmail' };
   }
 
-  await sgMail.send({
-    to,
-    from: config.sendgrid.fromEmail,
-    subject,
-    text,
-    html: html || text.replace(/\n/g, '<br>'),
-  });
+  // Fallback to SendGrid
+  if (config.sendgrid.apiKey) {
+    await sgMail.send({
+      to,
+      from: config.sendgrid.fromEmail,
+      subject,
+      text,
+      html: html || text.replace(/\n/g, '<br>'),
+      attachments: attachments?.map(a => ({
+        filename: a.filename,
+        content: a.path, // SG might need base64, but we'll see
+        type: a.contentType,
+        disposition: 'attachment'
+      })),
+    });
+    return { success: true, provider: 'sendgrid' };
+  }
 
-  return { success: true };
+  console.log(`[EMAIL MOCK] To: ${to}, Subject: ${subject}`);
+  if (attachments) console.log(`[EMAIL MOCK] Attachments: ${attachments.map(a => a.filename).join(', ')}`);
+
+  return { success: true, mock: true };
 }
 
 export async function sendSMS(phone: string, message: string) {

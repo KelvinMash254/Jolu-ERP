@@ -33,12 +33,12 @@ export async function generateInvoicePDF(invoiceId: string, options: PDFOptions 
   
   // Default colors per company
   const companyColors: Record<string, string> = {
-    MACHINERIES: '#0ea5e9', // Jolu Blue
-    SECURITY: '#1e293b',    // Slate Dark
-    AUTOMOBILE: '#dc2626',   // Red
+    MACHINERIES: '#18361e', // Dark Green
+    SECURITY: '#e82126',    // Bright Red
+    AUTOMOBILE: '#e82126',  // Bright Red
   };
 
-  const primaryColor = options.primaryColor || companyColors[invoice.company.code] || '#0ea5e9';
+  const primaryColor = options.primaryColor || companyColors[invoice.company.code] || '#18361e';
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
@@ -75,9 +75,10 @@ const headerY = 50;
       }
     }
 
-    doc.fontSize(24).font('Helvetica-Bold').fillColor(primaryColor).text(formatInvoiceType(invoice.type), 300, headerY, { align: 'right' });
+    doc.fontSize(28).font('Helvetica-Bold').fillColor(primaryColor).text(formatInvoiceType(invoice.type).toUpperCase(), 300, headerY, { align: 'right' });
     
-    doc.fontSize(14).font('Helvetica-Bold').fillColor('#000000').text(invoice.company.name, 300, doc.y, { align: 'right' });
+    const displayCompanyName = invoice.company.code === 'MACHINERIES' ? 'Jolu Machineries' : invoice.company.name;
+    doc.fontSize(18).font('Helvetica-Bold').fillColor('#000000').text(displayCompanyName, 300, doc.y + 5, { align: 'right' });
     doc.fontSize(9).font('Helvetica').fillColor('#000000').text(invoice.company.address || '', 300, doc.y, { align: 'right' });
     doc.text(`T: ${invoice.company.phone || ''}`, 300, doc.y, { align: 'right' });
     doc.text(`Email: ${invoice.company.email || ''}`, 300, doc.y, { align: 'right', });
@@ -179,15 +180,15 @@ if (
     const tableTop = doc.y;
     
     // Draw table header
-    doc.rect(50, tableTop, 500, 20).fill('#d9ead3').stroke('#000000');
-    doc.fillColor('#000000').font('Helvetica-Bold').fontSize(10);
+    doc.rect(50, tableTop, 500, 20).fill(primaryColor);
+    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(10);
     doc.text('Details', 55, tableTop + 5, { width: 220, align: 'center' });
     doc.text('Quantity', 275, tableTop + 5, { width: 80, align: 'center' });
     doc.text('Unit Price', 355, tableTop + 5, { width: 90, align: 'center' });
     doc.text('Amount', 445, tableTop + 5, { width: 100, align: 'center' });
 
     let y = tableTop + 20;
-    doc.font('Helvetica').fontSize(10);
+    doc.fillColor('#000000').font('Helvetica').fontSize(10);
     
     for (const line of invoice.lines) {
       const rowHeight = Math.max(25, doc.heightOfString(line.description, { width: 210 }) + 10);
@@ -206,15 +207,15 @@ if (
     }
 
     // Total row
-    doc.rect(355, y, 90, 25).fill('#d9ead3').stroke('#000000');
-    doc.rect(445, y, 105, 25).fill('#d9ead3').stroke('#000000');
-    doc.fillColor('#000000').font('Helvetica-Bold');
+    doc.rect(355, y, 90, 25).fill(primaryColor);
+    doc.rect(445, y, 105, 25).fill(primaryColor);
+    doc.fillColor('#ffffff').font('Helvetica-Bold');
     doc.text('Total', 360, y + 7, { width: 80, align: 'center' });
     doc.text(`KES ${Number(invoice.totalAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 445, y + 7, { width: 100, align: 'right' });
 
     // Terms and Bank Details
     y += 40;
-    doc.fontSize(10).font('Helvetica-Bold').text('Terms & Conditions', 50, y, { underline: true });
+    doc.fillColor('#000000').fontSize(10).font('Helvetica-Bold').text('Terms & Conditions', 50, y, { underline: true });
     doc.font('Helvetica').fontSize(9);
     doc.text('Prices quoted in Kenya Shilling (KES)', 50, y + 15);
     doc.text('Payment due within 30 Days', 50, y + 27);
@@ -223,21 +224,30 @@ if (
     // Bank Details Table
     const bankTableWidth = 250;
     doc.rect(50, y, bankTableWidth, 15).stroke();
-    doc.font('Helvetica-Bold').text('Bank Details:', 55, y + 3, { width: bankTableWidth - 10, align: 'center' });
+    doc.font('Helvetica-Bold').text('BANK DETAILS', 55, y + 3, { width: bankTableWidth - 10, align: 'center' });
     
-    const bankDetails = invoice.company.code === 'SECURITY' ? [
-      ['Account Name', 'Jolu Group Security Ltd'],
-      ['Account Number', '0112099542001'],
-      ['Bank Name', 'Co-operative Bank'],
-      ['Branch Name', 'Upper Hill'],
-      ['Branch Code', '011']
-    ] : [
+    let bankDetails = [
       ['Account Name', 'Jolu Agricultural Machineries Ltd'],
       ['Account Number', '3012099542002'],
       ['Bank Name', 'Kingdom Bank'],
-      ['Branch Name', 'Thika'],
-      ['Branch Code', '301']
+      ['Branch', 'Thika (301)']
     ];
+
+    if (invoice.company.code === 'SECURITY') {
+      bankDetails = [
+        ['Account Name', 'Jolu Group Security Ltd'],
+        ['Account Number', '0112099542001'],
+        ['Bank Name', 'Co-operative Bank'],
+        ['Branch', 'Upper Hill (011)']
+      ];
+    } else if (invoice.company.code === 'AUTOMOBILE') {
+      bankDetails = [
+        ['Account Name', 'Jolu Automobile Limited'],
+        ['Account Number', '3012099542003'],
+        ['Bank Name', 'Kingdom Bank'],
+        ['Branch', 'Thika (301)']
+      ];
+    }
 
     let bankY = y + 15;
     for (const [label, value] of bankDetails) {
@@ -250,17 +260,27 @@ if (
     // MPESA Details Table
     y = bankY + 20;
     doc.rect(50, y, bankTableWidth, 15).stroke();
-    doc.font('Helvetica-Bold').text('MPESA Details', 55, y + 3, { width: bankTableWidth - 10, align: 'center' });
+    doc.font('Helvetica-Bold').text('MPESA DETAILS', 55, y + 3, { width: bankTableWidth - 10, align: 'center' });
     
-    const mpesaDetails = invoice.company.code === 'SECURITY' ? [
-      ['MPESA Paybill', '400200'],
-      ['Account Number', '011929954200'],
-      ['Account Name', 'Jolu Security Services']
-    ] : [
-      ['MPESA Paybill', '529901'],
-      ['Account Number', '062015'],
-      ['Account Name', invoice.company.legalName]
+    let mpesaDetails = [
+      ['Paybill', '529901'],
+      ['Account', '062015'],
+      ['Name', 'Jolu Agricultural Machineries Ltd']
     ];
+
+    if (invoice.company.code === 'SECURITY') {
+      mpesaDetails = [
+        ['Paybill', '400200'],
+        ['Account', '011929954200'],
+        ['Name', 'Jolu Security Services']
+      ];
+    } else if (invoice.company.code === 'AUTOMOBILE') {
+      mpesaDetails = [
+        ['Paybill', '529901'],
+        ['Account', '062016'],
+        ['Name', invoice.company.legalName]
+      ];
+    }
 
     let mpesaY = y + 15;
     for (const [label, value] of mpesaDetails) {
