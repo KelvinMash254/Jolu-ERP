@@ -188,7 +188,7 @@ if (
     doc.text('Amount', 445, tableTop + 5, { width: 100, align: 'center' });
 
     let y = tableTop + 20;
-    doc.font('Helvetica').fontSize(10);
+    doc.fillColor('#000000').font('Helvetica').fontSize(10);
     
     for (const line of invoice.lines) {
       const rowHeight = Math.max(25, doc.heightOfString(line.description, { width: 210 }) + 10);
