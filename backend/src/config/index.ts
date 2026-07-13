@@ -29,6 +29,14 @@ export const config = {
     apiKey: process.env.SENDGRID_API_KEY || '',
     fromEmail: process.env.SENDGRID_FROM_EMAIL || 'noreply@jolugroup.co.ke',
   },
+email: {
+  host: process.env.EMAIL_HOST || '',
+  port: parseInt(process.env.EMAIL_PORT || '465', 10),
+  secure: process.env.EMAIL_SECURE === 'true',
+  user: process.env.EMAIL_USER || '',
+  password: process.env.EMAIL_PASSWORD || '',
+  from: process.env.EMAIL_FROM || 'Jolu Machineries <info@jolumachineries.com>',
+},
   mpesa: {
     consumerKey: process.env.MPESA_CONSUMER_KEY || '',
     consumerSecret: process.env.MPESA_CONSUMER_SECRET || '',

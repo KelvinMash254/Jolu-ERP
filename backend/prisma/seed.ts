@@ -83,9 +83,36 @@ async function main() {
   }
 
   const companies = [
-    { code: CompanyCode.MACHINERIES, name: 'Jolu Agricultural Machineries Ltd', legalName: 'Jolu Agricultural Machineries Ltd', kraPin: 'P051234567A', logoUrl: '/backend/uploads/logos/machineries.png' },
-    { code: CompanyCode.SECURITY, name: 'Jolu Group Security Ltd', legalName: 'Jolu Group Security Ltd', kraPin: 'P051234568B', logoUrl: '/uploads/logos/security.png' },
-    { code: CompanyCode.AUTOMOBILE, name: 'Jolu Automobile Limited', legalName: 'Jolu Automobile Limited', kraPin: 'P051234569C', logoUrl: '/uploads/logos/automobile.png' },
+    { 
+      code: CompanyCode.MACHINERIES, 
+      name: 'Jolu Agricultural Machineries Ltd', 
+      legalName: 'Jolu Agricultural Machineries Ltd', 
+      kraPin: 'P051234567A', 
+      logoUrl: '/backend/uploads/logos/machineries.png',
+      email: 'info@jolumachineries.com',
+      ccEmail: 'jolumachineries@gmail.com',
+      website: 'www.jolumachineries.com'
+    },
+    { 
+      code: CompanyCode.SECURITY, 
+      name: 'Jolu Group Security Ltd', 
+      legalName: 'Jolu Group Security Ltd', 
+      kraPin: 'P051234568B', 
+      logoUrl: '/uploads/logos/security.png',
+      email: 'info@jolusecurity.com',
+      ccEmail: 'jolugroup@gmail.com',
+      website: 'www.jolusecurity.com'
+    },
+    { 
+      code: CompanyCode.AUTOMOBILE, 
+      name: 'Jolu Automobile Limited', 
+      legalName: 'Jolu Automobile Limited', 
+      kraPin: 'P051234569C', 
+      logoUrl: '/uploads/logos/automobile.png',
+      email: 'info@joluautomobile.com',
+      ccEmail: 'jolugroup@gmail.com',
+      website: 'www.joluautomobile.com'
+    },
   ];
 
   const createdCompanies = [];
@@ -96,11 +123,14 @@ async function main() {
         ...co,
         address: 'Nairobi, Kenya',
         phone: '+254 769 281 518',
-        email: 'info@jolumachineries.com',
-        ccEmail: 'jolumachineries@gmail.com', 
-        website: 'www.jolumachineries.com',
       },
-      update: {},
+      update: {
+        email: co.email,
+        ccEmail: co.ccEmail,
+        website: co.website,
+        name: co.name,
+        legalName: co.legalName,
+      },
     });
     createdCompanies.push(company);
 

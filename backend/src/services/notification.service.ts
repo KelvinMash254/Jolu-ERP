@@ -1,27 +1,63 @@
-import sgMail from '@sendgrid/mail';
+import nodemailer from 'nodemailer';
 import prisma from '../config/database';
 import { config } from '../config';
 import { NotificationChannel } from '@prisma/client';
 
-if (config.sendgrid.apiKey) {
-  sgMail.setApiKey(config.sendgrid.apiKey);
+
+const transporter = nodemailer.createTransport({
+  host: config.email.host,
+  port: config.email.port,
+  secure: config.email.secure,
+  auth: {
+    user: config.email.user,
+    pass: config.email.password,
+  },
+});
+
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("❌ SMTP Connection Failed");
+    console.error(error);
+  } else {
+    console.log("✅ SMTP Connected");
+  }
+});
+
+
+export interface EmailAttachment {
+  filename: string;
+  path: string;
+  contentType?: string;
 }
 
-export async function sendEmail(to: string, subject: string, text: string, html?: string) {
-  if (!config.sendgrid.apiKey) {
-    console.log(`[EMAIL] To: ${to}, Subject: ${subject}`);
-    return { success: true, mock: true };
+export async function sendEmail(
+  to: string,
+  subject: string,
+  text: string,
+  html?: string,
+  attachments?: EmailAttachment[]
+) {
+  try {
+    const info = await transporter.sendMail({
+      from: config.email.from,
+      to,
+      subject,
+      text,
+      html: html || text.replace(/\n/g, "<br>"),
+      attachments,
+    });
+
+    console.log("✅ Email sent:", info.messageId);
+
+    return {
+      success: true,
+      provider: "smtp",
+      messageId: info.messageId,
+    };
+  } catch (error) {
+    console.error("❌ Failed to send email:", error);
+    throw error;
   }
-
-  await sgMail.send({
-    to,
-    from: config.sendgrid.fromEmail,
-    subject,
-    text,
-    html: html || text.replace(/\n/g, '<br>'),
-  });
-
-  return { success: true };
 }
 
 export async function sendSMS(phone: string, message: string) {
