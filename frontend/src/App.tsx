@@ -15,6 +15,7 @@ import FinancingPage from './pages/FinancingPage';
 import UsersPage from './pages/UsersPage';
 import AuditPage from './pages/AuditPage';
 import PettyCashPage from './pages/PettyCashPage';
+import CarHirePage from './pages/CarHirePage';
 import SettingsPage from './pages/SettingsPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="users" element={<UsersPage />} />
           <Route path="audit" element={<AuditPage />} />
           <Route path="petty-cash" element={<PettyCashPage />} />
+          <Route path="car-hire" element={<CarHirePage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Routes>

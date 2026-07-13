@@ -126,3 +126,9 @@ export const mpesaApi = {
   getTransactions: () => api.get('/mpesa/transactions'),
   stkPush: (data: object) => api.post('/mpesa/stk-push', data),
 };
+
+export const carHireApi = {
+  getAll: () => api.get('/car-hire'),
+  create: (data: object) => api.post('/car-hire', data),
+  update: (id: string, data: object) => api.patch(`/car-hire/${id}`, data),
+};

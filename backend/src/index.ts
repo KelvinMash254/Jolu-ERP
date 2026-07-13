@@ -22,6 +22,7 @@ import mpesaRoutes from './routes/mpesa.routes';
 import pettycashRoutes from './routes/pettycash.routes';
 import notificationsRoutes from './routes/notifications.routes';
 import importExportRoutes from './routes/import-export.routes';
+import carHireRoutes from './routes/car-hire.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 
 const app = express();
@@ -62,6 +63,7 @@ app.use('/api/mpesa', mpesaRoutes);
 app.use('/api/pettycash', pettycashRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/import-export', importExportRoutes);
+app.use('/api/car-hire', carHireRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
 app.use((_req, res) => {

@@ -22,6 +22,7 @@ const navItems = [
   { to: '/financing', icon: Landmark, label: 'Bank Financing', companies: ['MACHINERIES', 'AUTOMOBILE'] },
   { to: '/service', icon: Wrench, label: 'After Sales', companies: ['MACHINERIES', 'AUTOMOBILE'] },
   { to: '/security', icon: Shield, label: 'Security Module', companies: ['SECURITY'] },
+  { to: '/car-hire', icon: Car, label: 'Car Hire', companies: ['AUTOMOBILE'] },
   { to: '/petty-cash', icon: Wallet, label: 'Petty Cash' },
   { to: '/users', icon: Users, label: 'User Management', roles: ['SUPER_ADMIN', 'GROUP_ADMIN', 'COMPANY_ADMIN'] },
   { to: '/audit', icon: ClipboardList, label: 'Audit Trail', roles: ['SUPER_ADMIN', 'GROUP_ADMIN', 'AUDITOR'] },
