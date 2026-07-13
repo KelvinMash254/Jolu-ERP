@@ -60,6 +60,7 @@ model Company {
   importExportJobs    ImportExportJob[]
   mpesaTransactions   MpesaTransaction[]
   auditLogs           AuditLog[]
+  carHireBookings     CarHireBooking[]
 }
 
 model Branch {
@@ -288,6 +289,7 @@ model Customer {
   serviceTickets       ServiceTicket[]
   mpesaTransactions    MpesaTransaction[]
   securityContracts    SecurityContract[]
+  carHireBookings      CarHireBooking[]
 
   @@index([companyId, phone])
   @@index([salespersonId])
@@ -686,10 +688,55 @@ model Vehicle {
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
 
-  company        Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company        Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
   serviceTickets ServiceTicket[]
+  bookings       CarHireBooking[]
 
   @@unique([companyId, registrationNumber])
+}
+
+model CarHireBooking {
+  id                String        @id @default(uuid())
+  companyId         String
+  customerId        String?
+  vehicleId         String
+  bookingNumber     String
+  customerName      String? // Manual entry if not linked to CRM customer
+  phoneNumber       String?
+  idNumber          String?
+  driverAssigned    String?
+  pickupDate        DateTime
+  returnDate        DateTime?
+  destination       String?
+  dailyRate         Decimal       @db.Decimal(15, 2)
+  totalCharges      Decimal       @db.Decimal(15, 2)
+  depositPaid       Decimal       @default(0) @db.Decimal(15, 2)
+  balanceDue        Decimal       @db.Decimal(15, 2)
+  paymentStatus     PaymentStatus @default(PENDING)
+  vehicleStatus     VehicleStatus @default(AVAILABLE)
+  remarks           String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id])
+  vehicle  Vehicle   @relation(fields: [vehicleId], references: [id])
+
+  @@unique([companyId, bookingNumber])
+  @@index([companyId, pickupDate])
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID_IN_FULL
+}
+
+enum VehicleStatus {
+  AVAILABLE
+  OUT_ON_HIRE
+  RETURNED
+  UNDER_MAINTENANCE
 }
 
 // ==================== ACCOUNTING ====================
