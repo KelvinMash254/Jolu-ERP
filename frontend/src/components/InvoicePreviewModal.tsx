@@ -277,7 +277,7 @@ const sendEmailMutation = useMutation({
                         <>
                           <p><span className="font-bold">Paybill:</span> 400200</p>
                           <p><span className="font-bold">Account:</span> 011929954200</p>
-                          <p><span className="font-bold">Name:</span> Jolu Security Services</p>
+                          <p><span className="font-bold">Name:</span> Jolu Security Ltd</p>
                         </>
                       ) : invoice.company.code === 'AUTOMOBILE' ? (
                         <>
