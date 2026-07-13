@@ -110,8 +110,8 @@ export default function CarHirePage() {
       </div>
 
       {isModalOpen && (
-        <BookingModal 
-          onClose={() => setIsOpen(false)} 
+        <BookingModal
+          onClose={() => setIsOpen(false)}
           onSuccess={() => {
             queryClient.invalidateQueries({ queryKey: ['carHireBookings'] });
             setIsOpen(false);
@@ -178,9 +178,9 @@ function BookingModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="label">Vehicle</label>
-              <select 
-                className="input" 
-                value={formData.vehicleId} 
+              <select
+                className="input"
+                value={formData.vehicleId}
                 onChange={e => setFormData({...formData, vehicleId: e.target.value})}
                 required
               >
@@ -192,13 +192,13 @@ function BookingModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
             </div>
             <div>
               <label className="label">Link to Customer (Optional)</label>
-              <select 
-                className="input" 
-                value={formData.customerId} 
+              <select
+                className="input"
+                value={formData.customerId}
                 onChange={e => {
                   const cust = customers.find((c:any) => c.id === e.target.value);
                   setFormData({
-                    ...formData, 
+                    ...formData,
                     customerId: e.target.value,
                     customerName: cust?.name || '',
                     phoneNumber: cust?.phone || '',
@@ -217,27 +217,27 @@ function BookingModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="label">Customer Name</label>
-                <input 
-                  type="text" className="input" 
-                  value={formData.customerName} 
+                <input
+                  type="text" className="input"
+                  value={formData.customerName}
                   onChange={e => setFormData({...formData, customerName: e.target.value})}
-                  required 
+                  required
                 />
               </div>
               <div>
                 <label className="label">Phone Number</label>
-                <input 
-                  type="text" className="input" 
-                  value={formData.phoneNumber} 
+                <input
+                  type="text" className="input"
+                  value={formData.phoneNumber}
                   onChange={e => setFormData({...formData, phoneNumber: e.target.value})}
-                  required 
+                  required
                 />
               </div>
               <div>
                 <label className="label">ID Number</label>
-                <input 
-                  type="text" className="input" 
-                  value={formData.idNumber} 
+                <input
+                  type="text" className="input"
+                  value={formData.idNumber}
                   onChange={e => setFormData({...formData, idNumber: e.target.value})}
                 />
               </div>
@@ -247,27 +247,27 @@ function BookingModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
           <div className="grid grid-cols-3 gap-4">
              <div>
               <label className="label">Pickup Date</label>
-              <input 
-                type="date" className="input" 
-                value={formData.pickupDate} 
+              <input
+                type="date" className="input"
+                value={formData.pickupDate}
                 onChange={e => setFormData({...formData, pickupDate: e.target.value})}
-                required 
+                required
               />
             </div>
             <div>
               <label className="label">Return Date</label>
-              <input 
-                type="date" className="input" 
-                value={formData.returnDate} 
+              <input
+                type="date" className="input"
+                value={formData.returnDate}
                 onChange={e => setFormData({...formData, returnDate: e.target.value})}
-                required 
+                required
               />
             </div>
             <div>
               <label className="label">Driver Assigned</label>
-              <input 
-                type="text" className="input" 
-                value={formData.driverAssigned} 
+              <input
+                type="text" className="input"
+                value={formData.driverAssigned}
                 onChange={e => setFormData({...formData, driverAssigned: e.target.value})}
               />
             </div>
@@ -276,26 +276,26 @@ function BookingModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="label">Daily Rate (KES)</label>
-              <input 
-                type="number" className="input" 
-                value={formData.dailyRate} 
+              <input
+                type="number" className="input"
+                value={formData.dailyRate}
                 onChange={e => setFormData({...formData, dailyRate: e.target.value})}
-                required 
+                required
               />
             </div>
             <div>
               <label className="label">Deposit Paid (KES)</label>
-              <input 
-                type="number" className="input" 
-                value={formData.depositPaid} 
+              <input
+                type="number" className="input"
+                value={formData.depositPaid}
                 onChange={e => setFormData({...formData, depositPaid: e.target.value})}
               />
             </div>
             <div>
               <label className="label">Destination</label>
-              <input 
-                type="text" className="input" 
-                value={formData.destination} 
+              <input
+                type="text" className="input"
+                value={formData.destination}
                 onChange={e => setFormData({...formData, destination: e.target.value})}
               />
             </div>
@@ -303,17 +303,17 @@ function BookingModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
 
           <div>
             <label className="label">Remarks</label>
-            <textarea 
-              className="input h-20" 
-              value={formData.remarks} 
+            <textarea
+              className="input h-20"
+              value={formData.remarks}
               onChange={e => setFormData({...formData, remarks: e.target.value})}
             />
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
             <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={mutation.isPending}
               className="btn-primary"
             >
