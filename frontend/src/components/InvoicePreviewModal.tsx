@@ -119,7 +119,7 @@ const sendEmailMutation = useMutation({
               {invoice?.status === 'DRAFT' && (
                 <button
                   onClick={() => sendEmailMutation.mutate()}
-                  disabled={sendEmailMutation.isPending || !invoice?.customer?.email}
+                  disabled={sendEmailMutation.isPending || !(invoice?.customer?.email || invoice?.securityClient?.email)}
                   className="w-full flex items-center justify-center gap-2 py-2.5 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                   style={{ backgroundColor: primaryColor }}
                 >
@@ -127,7 +127,7 @@ const sendEmailMutation = useMutation({
                   {sendEmailMutation.isPending ? 'Sending...' : 'Send to Customer'}
                 </button>
               )}
-              {!invoice?.customer?.email && invoice && (
+              {!(invoice?.customer?.email || invoice?.securityClient?.email) && invoice && (
                 <p className="text-[10px] text-amber-600 text-center">Customer email missing</p>
               )}
             </div>
