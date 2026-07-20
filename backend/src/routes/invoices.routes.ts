@@ -135,15 +135,52 @@ router.post('/:id/send', requirePermission('invoices', 'update'), async (req: Au
   const dueDate = invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('en-GB') : 'N/A';
 
   if (clientEmail) {
-    const subject = `${invoiceTypeStr} for Services Rendered – ${invoiceTypeStr} No. ${invoice.invoiceNumber}`;
-    const text = `
-Subject: ${invoiceTypeStr} for Services Rendered – ${invoiceTypeStr} No. ${invoice.invoiceNumber}
+    let subject = '';
+    let bodyIntro = '';
+    let bodyClosing = '';
 
+    const companyCode = invoice.company.code;
+    const isQuotation = invoice.type === 'QUOTATION';
+
+    if (companyCode === 'MACHINERIES') {
+      if (isQuotation) {
+        subject = `Quotation for Machinery Purchase – Quotation No. ${invoice.invoiceNumber}`;
+        bodyIntro = `Please find attached Quotation No. ${invoice.invoiceNumber} for the tractor/agricultural machinery you requested. This quotation is provided for your review prior to any services or supply of machinery.`;
+      } else {
+        subject = `Invoice for Machinery Purchase – Invoice No. ${invoice.invoiceNumber}`;
+        bodyIntro = `Please find attached Invoice No. ${invoice.invoiceNumber} for your recent tractor/agricultural machinery purchase from Jolu Machineries.`;
+      }
+      bodyClosing = `Thank you for choosing Jolu Machineries. We look forward to powering your agricultural productivity.`;
+    } else if (companyCode === 'SECURITY') {
+      if (isQuotation) {
+        subject = `Quotation for Security Services – Quotation No. ${invoice.invoiceNumber}`;
+        bodyIntro = `Please find attached Quotation No. ${invoice.invoiceNumber} for security guard services. This quotation is provided before services are rendered for your initial evaluation.`;
+      } else {
+        subject = `Invoice for Security Services Rendered – Invoice No. ${invoice.invoiceNumber}`;
+        bodyIntro = `Please find attached Invoice No. ${invoice.invoiceNumber} for security services rendered at your facility.`;
+      }
+      bodyClosing = `Thank you for trusting Jolu Group Security Ltd to secure your assets.`;
+    } else if (companyCode === 'AUTOMOBILE') {
+      if (isQuotation) {
+        subject = `Quotation for Vehicle Hire – Quotation No. ${invoice.invoiceNumber}`;
+        bodyIntro = `Please find attached Quotation No. ${invoice.invoiceNumber} for the vehicle rental/hire service. This quotation details expected charges prior to booking finalization.`;
+      } else {
+        subject = `Invoice for Vehicle Hire Services – Invoice No. ${invoice.invoiceNumber}`;
+        bodyIntro = `Please find attached Invoice No. ${invoice.invoiceNumber} for the automobile hire/rental services provided.`;
+      }
+      bodyClosing = `Thank you for riding with Jolu Automobile Limited. We wish you a safe and pleasant journey.`;
+    } else {
+      subject = `${invoiceTypeStr} – No. ${invoice.invoiceNumber}`;
+      bodyIntro = `Please find attached ${invoiceTypeStr} No. ${invoice.invoiceNumber} for the services/products agreed.`;
+      bodyClosing = `Thank you for your continued trust and business.`;
+    }
+
+    const text = `
 Dear ${clientName},
 
 I hope you are doing well.
 
-Please find attached ${invoiceTypeStr} No. ${invoice.invoiceNumber} for the services rendered/provided as agreed.
+${bodyIntro}
 
 ${invoiceTypeStr} Summary:
 
@@ -152,18 +189,23 @@ ${invoiceTypeStr} Summary:
 * Amount Due: KES ${Number(invoice.totalAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
 * Due Date: ${dueDate}
 
-Kindly review the attached ${invoiceTypeStr.toLowerCase()} and arrange payment by the due date. Should you have any questions or require any clarification, please do not hesitate to contact me.
+Kindly review the attached document. Should you have any questions or require any clarification, please do not hesitate to contact us.
 
-Thank you for your continued trust and business. I look forward to serving you again.
+${bodyClosing}
 
 Kind regards,
 
 ${req.user?.firstName} ${req.user?.lastName || ''}
 
-Jolu Group Limited
+${invoice.company.legalName}
 📞 ${invoice.company.phone || '+254 769 281 518'}
 📧 ${invoice.company.email || 'info@jolugroup.co.ke'}
     `;
+
+    // Dynamic Sender Address
+    const senderEmail = invoice.company.email || 'info@jolugroup.co.ke';
+    const senderName = invoice.company.name;
+    const fromHeader = `"${senderName}" <${senderEmail}>`;
 
     await sendEmail(
       clientEmail,
@@ -174,7 +216,8 @@ Jolu Group Limited
         filename: `${invoice.invoiceNumber.replace(/\//g, '-')}.pdf`,
         path: pdfPath,
         contentType: 'application/pdf'
-      }]
+      }],
+      fromHeader
     );
   }
 
