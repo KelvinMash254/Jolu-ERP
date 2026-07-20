@@ -35,11 +35,12 @@ export async function sendEmail(
   subject: string,
   text: string,
   html?: string,
-  attachments?: EmailAttachment[]
+  attachments?: EmailAttachment[],
+  from?: string
 ) {
   try {
     const info = await transporter.sendMail({
-      from: config.email.from,
+      from: from || config.email.from,
       to,
       subject,
       text,
