@@ -159,7 +159,7 @@ Thank you for your continued trust and business. I look forward to serving you a
 Kind regards,
 
 ${req.user?.firstName} ${req.user?.lastName || ''}
-System Administrator
+
 Jolu Group Limited
 📞 ${invoice.company.phone || '+254 769 281 518'}
 📧 ${invoice.company.email || 'info@jolugroup.co.ke'}

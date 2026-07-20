@@ -169,6 +169,64 @@ async function main() {
   });
 
   const salesRole = await prisma.role.findUnique({ where: { name: 'SALES_MANAGER' } });
+  // CRM Users: Walter (Sales Manager), Dennis (Rongo - Sales Rep), George (Awasi - Sales Rep)
+  const salesRepRole = await prisma.role.findUnique({ where: { name: 'SALES_REPRESENTATIVE' } });
+  
+  const walter = await prisma.user.upsert({
+    where: { email: 'walter@jolugroup.co.ke' },
+    create: {
+      email: 'walter@jolugroup.co.ke',
+      passwordHash,
+      firstName: 'Walter',
+      lastName: 'Head of Business',
+      phone: '+254700000004',
+      roleId: salesRole!.id,
+      companies: {
+        create: createdCompanies.map((c) => ({ companyId: c.id, isPrimary: c.code === CompanyCode.MACHINERIES })),
+      },
+    },
+    update: {},
+  });
+
+  const dennis = await prisma.user.upsert({
+    where: { email: 'dennis@jolugroup.co.ke' },
+    create: {
+      email: 'dennis@jolugroup.co.ke',
+      passwordHash,
+      firstName: 'Dennis',
+      lastName: 'Rongo',
+      phone: '+254700000005',
+      roleId: salesRepRole!.id,
+      managerId: walter.id,
+      companies: {
+        create: createdCompanies.map((c) => ({ companyId: c.id, isPrimary: c.code === CompanyCode.MACHINERIES })),
+      },
+    },
+    update: {
+      managerId: walter.id,
+    },
+  });
+
+  const george = await prisma.user.upsert({
+    where: { email: 'george@jolugroup.co.ke' },
+    create: {
+      email: 'george@jolugroup.co.ke',
+      passwordHash,
+      firstName: 'George',
+      lastName: 'Awasi',
+      phone: '+254700000006',
+      roleId: salesRepRole!.id,
+      managerId: walter.id,
+      companies: {
+        create: createdCompanies.map((c) => ({ companyId: c.id, isPrimary: c.code === CompanyCode.MACHINERIES })),
+      },
+    },
+    update: {
+      managerId: walter.id,
+    },
+  });
+
+  // salesRole is already defined
   await prisma.user.upsert({
     where: { email: 'sales@jolugroup.co.ke' },
     create: {
@@ -215,6 +273,8 @@ async function main() {
       { companyId: machineriesCo.id, partNumber: 'SP-001', partName: 'Oil Filter', category: 'Filters', quantity: 50, costPrice: 1500, sellingPrice: 2500, reorderLevel: 10 },
       { companyId: machineriesCo.id, partNumber: 'SP-002', partName: 'Air Filter', category: 'Filters', quantity: 8, costPrice: 2000, sellingPrice: 3500, reorderLevel: 10 },
       { companyId: machineriesCo.id, partNumber: 'SP-003', partName: 'Hydraulic Hose', category: 'Hydraulics', quantity: 25, costPrice: 5000, sellingPrice: 8000, reorderLevel: 5 },
+      { companyId: machineriesCo.id, partNumber: 'SP-004', partName: 'Tractor Fan Belt', category: 'Tractor Spares', quantity: 15, costPrice: 1200, sellingPrice: 2200, reorderLevel: 5 },
+      { companyId: machineriesCo.id, partNumber: 'SP-005', partName: 'Tractor Clutch Plate', category: 'Tractor Spares', quantity: 10, costPrice: 8500, sellingPrice: 13500, reorderLevel: 3 },
     ],
     skipDuplicates: true,
   });

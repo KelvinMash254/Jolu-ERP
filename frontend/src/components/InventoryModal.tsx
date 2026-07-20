@@ -135,10 +135,19 @@ const renderSparePartForm = () => (
             <option value="Office Supplies">Office Supplies</option>
           </select>
         ) : (
-          <input
+          <select
             className="input"
+            required
             onChange={(e) => handleChange('category', e.target.value)}
-          />
+          >
+            <option value="">Select Category</option>
+            <option value="Tractor Spares">Tractor Spares</option>
+            <option value="Filters">Filters</option>
+            <option value="Hydraulics">Hydraulics</option>
+            <option value="Mechanical">Mechanical</option>
+            <option value="Electrical">Electrical</option>
+            <option value="Other">Other</option>
+          </select>
         )}
       </div>
 

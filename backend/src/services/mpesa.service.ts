@@ -120,6 +120,16 @@ export async function initiateSTKPush(
   accountReference?: string
 ) {
   const token = await getMpesaAccessToken();
+  console.log("========== MPESA CONFIG ==========");
+
+console.log({
+  environment: config.mpesa.environment,
+  shortcode: config.mpesa.shortcode,
+  callbackUrl: config.mpesa.callbackUrl,
+  consumerKey: config.mpesa.consumerKey.substring(0, 8) + "...",
+  consumerSecret: config.mpesa.consumerSecret.substring(0, 8) + "...",
+  passkeyLength: config.mpesa.passkey.length,
+});
   const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
   const password = Buffer.from(
     `${config.mpesa.shortcode}${config.mpesa.passkey}${timestamp}`
@@ -130,42 +140,82 @@ export async function initiateSTKPush(
       ? 'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
       : 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest';
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      BusinessShortCode: config.mpesa.shortcode,
-      Password: password,
-      Timestamp: timestamp,
-      TransactionType: 'CustomerPayBillOnline',
-      Amount: Math.round(amount),
-      PartyA: phoneNumber,
-      PartyB: config.mpesa.shortcode,
-      PhoneNumber: phoneNumber,
-      CallBackURL: config.mpesa.callbackUrl,
-      AccountReference: accountReference || invoiceId || 'JOLU-ERP',
-      TransactionDesc: 'Invoice Payment',
-    }),
-  });
 
-  return response.json();
+console.log("====== STK REQUEST ======");
+console.log({
+  BusinessShortCode: config.mpesa.shortcode,
+  Password: password,
+  Timestamp: timestamp,
+  TransactionType: "CustomerPayBillOnline",
+  Amount: Math.round(amount),
+  PartyA: phoneNumber,
+  PartyB: config.mpesa.shortcode,
+  PhoneNumber: phoneNumber,
+  CallBackURL: config.mpesa.callbackUrl,
+  AccountReference: accountReference || invoiceId || "JOLU-ERP",
+  TransactionDesc: "Invoice Payment",
+});
+
+
+
+const response = await fetch(url, {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  },
+  body: JSON.stringify({
+    BusinessShortCode: config.mpesa.shortcode,
+    Password: password,
+    Timestamp: timestamp,
+    TransactionType: "CustomerPayBillOnline",
+    Amount: Math.round(amount),
+    PartyA: phoneNumber,
+    PartyB: config.mpesa.shortcode,
+    PhoneNumber: phoneNumber,
+    CallBackURL: config.mpesa.callbackUrl,
+    AccountReference: accountReference || invoiceId || "JOLU-ERP",
+    TransactionDesc: "Invoice Payment",
+  }),
+});
+
+const text = await response.text();
+
+console.log("====== STK PUSH ======");
+console.log("Status:", response.status);
+console.log("Body:", text);
+
+return JSON.parse(text);
 }
 
 async function getMpesaAccessToken(): Promise<string> {
   const url =
-    config.mpesa.environment === 'production'
-      ? 'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
-      : 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials';
+    config.mpesa.environment === "production"
+      ? "https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
+      : "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials";
 
-  const auth = Buffer.from(`${config.mpesa.consumerKey}:${config.mpesa.consumerSecret}`).toString('base64');
+  const auth = Buffer.from(
+    `${config.mpesa.consumerKey}:${config.mpesa.consumerSecret}`
+  ).toString("base64");
 
   const response = await fetch(url, {
-    headers: { Authorization: `Basic ${auth}` },
+    headers: {
+      Authorization: `Basic ${auth}`,
+    },
   });
 
-  const data = (await response.json()) as { access_token: string };
+  const text = await response.text();
+
+  console.log("====== OAUTH ======");
+  console.log("Status:", response.status);
+  console.log("Body:", text);
+
+  if (!response.ok) {
+    throw new Error(`OAuth failed: ${text}`);
+  }
+
+  const data = JSON.parse(text);
+
   return data.access_token;
 }

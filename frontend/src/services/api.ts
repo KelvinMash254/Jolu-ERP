@@ -132,3 +132,17 @@ export const carHireApi = {
   create: (data: object) => api.post('/car-hire', data),
   update: (id: string, data: object) => api.patch(`/car-hire/${id}`, data),
 };
+
+export const machineryDocsApi = {
+  getContracts: () => api.get('/machinery-docs/sales-contracts'),
+  createContract: (data: object) => api.post('/machinery-docs/sales-contracts', data),
+  getContractPdf: (id: string) => api.get(`/machinery-docs/sales-contracts/${id}/pdf`),
+
+  getDeliveries: () => api.get('/machinery-docs/delivery-notes'),
+  createDelivery: (data: object) => api.post('/machinery-docs/delivery-notes', data),
+  getDeliveryPdf: (id: string) => api.get(`/machinery-docs/delivery-notes/${id}/pdf`),
+
+  getGatePasses: () => api.get('/machinery-docs/gate-passes'),
+  createGatePass: (data: object) => api.post('/machinery-docs/gate-passes', data),
+  getGatePassPdf: (id: string) => api.get(`/machinery-docs/gate-passes/${id}/pdf`),
+};

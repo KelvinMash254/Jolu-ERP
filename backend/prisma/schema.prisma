@@ -22,45 +22,48 @@ enum BranchCode {
 }
 
 model Company {
-  id          String      @id @default(uuid())
-  code        CompanyCode @unique
-  name        String
-  legalName   String
-  kraPin      String?
-  address     String?
-  phone       String?
-  email       String?
-  ccEmail     String?
-  website     String?
-  logoUrl     String?
-  currency    String      @default("KES")
-  isActive    Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id        String      @id @default(uuid())
+  code      CompanyCode @unique
+  name      String
+  legalName String
+  kraPin    String?
+  address   String?
+  phone     String?
+  email     String?
+  ccEmail   String?
+  website   String?
+  logoUrl   String?
+  currency  String      @default("KES")
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 
-  branches            Branch[]
-  userCompanies       UserCompany[]
-  customers           Customer[]
-  leads               Lead[]
-  machineryUnits      MachineryUnit[]
-  vehicles            Vehicle[]
-  spareParts          SparePart[]
-  securityClients     SecurityClient[]
-  securityContracts   SecurityContract[]
-  guards              Guard[]
-  sites               Site[]
-  invoices            Invoice[]
-  chartOfAccounts     ChartOfAccount[]
-  journalEntries      JournalEntry[]
-  bankFinancingApps   BankFinancingApplication[]
-  serviceTickets      ServiceTicket[]
-  pettyCashAccounts   PettyCashAccount[]
-  notifications       Notification[]
-  documentTemplates   DocumentTemplate[]
-  importExportJobs    ImportExportJob[]
-  mpesaTransactions   MpesaTransaction[]
-  auditLogs           AuditLog[]
-  carHireBookings     CarHireBooking[]
+  branches          Branch[]
+  userCompanies     UserCompany[]
+  customers         Customer[]
+  leads             Lead[]
+  machineryUnits    MachineryUnit[]
+  vehicles          Vehicle[]
+  spareParts        SparePart[]
+  securityClients   SecurityClient[]
+  securityContracts SecurityContract[]
+  guards            Guard[]
+  sites             Site[]
+  invoices          Invoice[]
+  chartOfAccounts   ChartOfAccount[]
+  journalEntries    JournalEntry[]
+  bankFinancingApps BankFinancingApplication[]
+  serviceTickets    ServiceTicket[]
+  pettyCashAccounts PettyCashAccount[]
+  notifications     Notification[]
+  documentTemplates DocumentTemplate[]
+  importExportJobs  ImportExportJob[]
+  mpesaTransactions MpesaTransaction[]
+  auditLogs         AuditLog[]
+  carHireBookings   CarHireBooking[]
+  salesContracts    SalesContract[]
+  deliveryNotes     DeliveryNote[]
+  gatePasses        GatePass[]
 }
 
 model Branch {
@@ -74,7 +77,7 @@ model Branch {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
-  company           Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company           Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
   userBranches      UserBranch[]
   pettyCashAccounts PettyCashAccount[]
 
@@ -110,7 +113,7 @@ model Role {
 }
 
 model Permission {
-  id          String @id @default(uuid())
+  id          String  @id @default(uuid())
   module      String
   action      String
   description String?
@@ -131,34 +134,38 @@ model RolePermission {
 }
 
 model User {
-  id              String    @id @default(uuid())
-  email           String    @unique
-  passwordHash    String
-  firstName       String
-  lastName        String
-  phone           String?
-  avatarUrl       String?
-  roleId          String
-  isActive        Boolean   @default(true)
-  twoFactorSecret String?
-  twoFactorEnabled Boolean  @default(false)
-  lastLoginAt     DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id               String    @id @default(uuid())
+  email            String    @unique
+  passwordHash     String
+  firstName        String
+  lastName         String
+  phone            String?
+  avatarUrl        String?
+  roleId           String
+  isActive         Boolean   @default(true)
+  twoFactorSecret  String?
+  twoFactorEnabled Boolean   @default(false)
+  lastLoginAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  managerId        String?
 
-  role              Role              @relation(fields: [roleId], references: [id])
-  companies         UserCompany[]
-  branches          UserBranch[]
-  sessions          UserSession[]
-  auditLogs         AuditLog[]
-  assignedLeads     Lead[]            @relation("LeadSalesperson")
-  assignedCustomers Customer[]        @relation("CustomerSalesperson")
-  technicianTickets ServiceTicket[]   @relation("TicketTechnician")
-  activities        Activity[]
-  reminders         Reminder[]
-  notifications     Notification[]
-  pettyCashRequests PettyCashRequest[]
+  role               Role               @relation(fields: [roleId], references: [id])
+  companies          UserCompany[]
+  branches           UserBranch[]
+  sessions           UserSession[]
+  auditLogs          AuditLog[]
+  assignedLeads      Lead[]             @relation("LeadSalesperson")
+  assignedCustomers  Customer[]         @relation("CustomerSalesperson")
+  technicianTickets  ServiceTicket[]    @relation("TicketTechnician")
+  activities         Activity[]
+  reminders          Reminder[]
+  notifications      Notification[]
+  pettyCashRequests  PettyCashRequest[]
   pettyCashApprovals PettyCashRequest[] @relation("PettyCashApprover")
+
+  manager      User?  @relation("UserHierarchy", fields: [managerId], references: [id])
+  subordinates User[] @relation("UserHierarchy")
 }
 
 model UserCompany {
@@ -258,38 +265,41 @@ enum ActivityType {
 }
 
 model Customer {
-  id               String   @id @default(uuid())
-  companyId        String
-  name             String
-  idNumber         String?
-  kraPin           String?
-  phone            String
-  email            String?
-  county           String?
-  physicalAddress  String?
-  financingBank    String?
-  loanAmount       Decimal? @db.Decimal(15, 2)
-  depositPaid      Decimal? @db.Decimal(15, 2) @default(0)
-  approvalStatus   String?
-  salespersonId    String?
-  technicianId     String?
-  administratorId  String?
-  isActive         Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id              String   @id @default(uuid())
+  companyId       String
+  name            String
+  idNumber        String?
+  kraPin          String?
+  phone           String
+  email           String?
+  county          String?
+  physicalAddress String?
+  financingBank   String?
+  loanAmount      Decimal? @db.Decimal(15, 2)
+  depositPaid     Decimal? @default(0) @db.Decimal(15, 2)
+  approvalStatus  String?
+  salespersonId   String?
+  technicianId    String?
+  administratorId String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  company              Company                    @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  salesperson          User?                      @relation("CustomerSalesperson", fields: [salespersonId], references: [id])
-  leads                Lead[]
-  activities           Activity[]
-  reminders            Reminder[]
-  documents            Document[]
-  invoices             Invoice[]
-  bankFinancingApps    BankFinancingApplication[]
-  serviceTickets       ServiceTicket[]
-  mpesaTransactions    MpesaTransaction[]
-  securityContracts    SecurityContract[]
-  carHireBookings      CarHireBooking[]
+  company           Company                    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  salesperson       User?                      @relation("CustomerSalesperson", fields: [salespersonId], references: [id])
+  leads             Lead[]
+  activities        Activity[]
+  reminders         Reminder[]
+  documents         Document[]
+  invoices          Invoice[]
+  bankFinancingApps BankFinancingApplication[]
+  serviceTickets    ServiceTicket[]
+  mpesaTransactions MpesaTransaction[]
+  securityContracts SecurityContract[]
+  carHireBookings   CarHireBooking[]
+  SalesContract     SalesContract[]
+  DeliveryNote      DeliveryNote[]
+  GatePass          GatePass[]
 
   @@index([companyId, phone])
   @@index([salespersonId])
@@ -393,7 +403,7 @@ model MachineryUnit {
   category           MachineryCategory
   brand              String
   model              String
-  chassisNumber      String?          
+  chassisNumber      String?
   engineNumber       String?
   registrationNumber String?
   serialNumber       String?           @unique
@@ -412,6 +422,9 @@ model MachineryUnit {
   lifecycleEvents MachineryLifecycleEvent[]
   serviceTickets  ServiceTicket[]
   bankAllocations BankFinancingApplication[] @relation("AllocatedUnit")
+  SalesContract   SalesContract[]
+  DeliveryNote    DeliveryNote[]
+  GatePass        GatePass[]
 
   @@index([companyId, stockStatus])
   @@index([category])
@@ -448,7 +461,7 @@ model BankFinancingApplication {
   customerId       String
   bankName         String
   loanAmount       Decimal        @db.Decimal(15, 2)
-  depositAmount    Decimal        @db.Decimal(15, 2) @default(0)
+  depositAmount    Decimal        @default(0) @db.Decimal(15, 2)
   remainingBalance Decimal?       @db.Decimal(15, 2)
   stage            FinancingStage @default(DOCUMENTS_SUBMITTED)
   approvalDate     DateTime?
@@ -492,11 +505,11 @@ model ServiceTicket {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
-  company       Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer      Customer            @relation(fields: [customerId], references: [id])
-  machineryUnit MachineryUnit?      @relation(fields: [machineryUnitId], references: [id])
-  vehicle       Vehicle?            @relation(fields: [vehicleId], references: [id])
-  technician    User?               @relation("TicketTechnician", fields: [technicianId], references: [id])
+  company        Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer       Customer            @relation(fields: [customerId], references: [id])
+  machineryUnit  MachineryUnit?      @relation(fields: [machineryUnitId], references: [id])
+  vehicle        Vehicle?            @relation(fields: [vehicleId], references: [id])
+  technician     User?               @relation("TicketTechnician", fields: [technicianId], references: [id])
   sparePartsUsed ServiceTicketPart[]
 
   @@index([companyId, status])
@@ -532,7 +545,7 @@ model SparePart {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  company        Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company        Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
   stockMovements SparePartMovement[]
   ticketParts    ServiceTicketPart[]
 
@@ -563,15 +576,15 @@ model SparePartMovement {
 // ==================== SECURITY MODULE ====================
 
 model SecurityClient {
-  id        String   @id @default(uuid())
-  companyId String
-  name      String
+  id            String  @id @default(uuid())
+  companyId     String
+  name          String
   contactPerson String?
-  phone     String
-  email     String?
-  address   String?
-  kraPin    String?
-  isActive  Boolean  @default(true)
+  phone         String
+  email         String?
+  address       String?
+  kraPin        String?
+  isActive      Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -583,40 +596,40 @@ model SecurityClient {
 }
 
 model SecurityContract {
-  id           String   @id @default(uuid())
-  companyId    String
-  clientId     String
-  customerId   String?
-  contractNumber String @unique
-  startDate    DateTime
-  endDate      DateTime?
-  monthlyFee   Decimal  @db.Decimal(15, 2)
-  guardsCount  Int      @default(1)
-  terms        String?
-  status       String   @default("ACTIVE")
-  fileUrl      String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String    @id @default(uuid())
+  companyId      String
+  clientId       String
+  customerId     String?
+  contractNumber String    @unique
+  startDate      DateTime
+  endDate        DateTime?
+  monthlyFee     Decimal   @db.Decimal(15, 2)
+  guardsCount    Int       @default(1)
+  terms          String?
+  status         String    @default("ACTIVE")
+  fileUrl        String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  company     Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  client      SecurityClient @relation(fields: [clientId], references: [id])
-  customer    Customer?      @relation(fields: [customerId], references: [id])
+  company     Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  client      SecurityClient    @relation(fields: [clientId], references: [id])
+  customer    Customer?         @relation(fields: [customerId], references: [id])
   deployments GuardDeployment[]
   invoices    Invoice[]
 }
 
 model Guard {
-  id          String   @id @default(uuid())
-  companyId   String
-  employeeNo  String
-  firstName   String
-  lastName    String
-  phone       String
-  idNumber    String?
-  licenseNo   String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(uuid())
+  companyId  String
+  employeeNo String
+  firstName  String
+  lastName   String
+  phone      String
+  idNumber   String?
+  licenseNo  String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   company     Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
   deployments GuardDeployment[]
@@ -717,6 +730,10 @@ model CarHireBooking {
   remarks           String?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
+  location          String?
+  signedContractUrl String?
+  clientIdCardUrl   String?
+  clientPhotoUrl    String?
 
   company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   customer Customer? @relation(fields: [customerId], references: [id])
@@ -750,15 +767,15 @@ enum AccountType {
 }
 
 model ChartOfAccount {
-  id          String      @id @default(uuid())
-  companyId   String
-  code        String
-  name        String
-  type        AccountType
-  parentId    String?
-  isActive    Boolean     @default(true)
-  balance     Decimal     @default(0) @db.Decimal(15, 2)
-  createdAt   DateTime    @default(now())
+  id        String      @id @default(uuid())
+  companyId String
+  code      String
+  name      String
+  type      AccountType
+  parentId  String?
+  isActive  Boolean     @default(true)
+  balance   Decimal     @default(0) @db.Decimal(15, 2)
+  createdAt DateTime    @default(now())
 
   company      Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
   parent       ChartOfAccount?  @relation("AccountHierarchy", fields: [parentId], references: [id])
@@ -783,10 +800,10 @@ model JournalEntry {
 
   company Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   lines   JournalLine[]
+  invoice Invoice?
 
   @@unique([companyId, entryNumber])
   @@index([companyId, date])
-  invoice     Invoice?
 }
 
 model JournalLine {
@@ -824,38 +841,38 @@ enum InvoiceStatus {
 }
 
 model Invoice {
-  id             String        @id @default(uuid())
-  companyId      String
-  customerId     String?
+  id               String        @id @default(uuid())
+  companyId        String
+  customerId       String?
   securityClientId String?
-  contractId     String?
-  invoiceNumber  String
-  type           InvoiceType
-  status         InvoiceStatus @default(DRAFT)
-  issueDate      DateTime      @default(now())
-  dueDate        DateTime?
-  subtotal       Decimal       @db.Decimal(15, 2)
-  taxAmount      Decimal       @default(0) @db.Decimal(15, 2)
-  totalAmount    Decimal       @db.Decimal(15, 2)
-  amountPaid     Decimal       @default(0) @db.Decimal(15, 2)
-  notes          String?
-  pdfUrl         String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  contractId       String?
+  invoiceNumber    String
+  type             InvoiceType
+  status           InvoiceStatus @default(DRAFT)
+  issueDate        DateTime      @default(now())
+  dueDate          DateTime?
+  subtotal         Decimal       @db.Decimal(15, 2)
+  taxAmount        Decimal       @default(0) @db.Decimal(15, 2)
+  totalAmount      Decimal       @db.Decimal(15, 2)
+  amountPaid       Decimal       @default(0) @db.Decimal(15, 2)
+  notes            String?
+  pdfUrl           String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
-  company        Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer       Customer?         @relation(fields: [customerId], references: [id])
-  securityClient SecurityClient?   @relation(fields: [securityClientId], references: [id])
-  contract       SecurityContract? @relation(fields: [contractId], references: [id])
-  lines          InvoiceLine[]
-  payments       InvoicePayment[]
+  company           Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer          Customer?          @relation(fields: [customerId], references: [id])
+  securityClient    SecurityClient?    @relation(fields: [securityClientId], references: [id])
+  contract          SecurityContract?  @relation(fields: [contractId], references: [id])
+  lines             InvoiceLine[]
+  payments          InvoicePayment[]
   mpesaTransactions MpesaTransaction[]
+
+  journalEntryId String?       @unique
+  journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
 
   @@unique([companyId, invoiceNumber])
   @@index([companyId, status])
-
-  journalEntryId String?       @unique
-  journalEntry   JournalEntry? @relation(fields:[journalEntryId], references:[id])
 }
 
 model InvoiceLine {
@@ -911,13 +928,13 @@ enum PettyCashStatus {
 }
 
 model PettyCashAccount {
-  id        String     @id @default(uuid())
+  id        String   @id @default(uuid())
   companyId String
   branchId  String
   name      String
-  balance   Decimal    @default(0) @db.Decimal(15, 2)
-  limit     Decimal    @db.Decimal(15, 2)
-  createdAt DateTime   @default(now())
+  balance   Decimal  @default(0) @db.Decimal(15, 2)
+  limit     Decimal  @db.Decimal(15, 2)
+  createdAt DateTime @default(now())
 
   company  Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
   branch   Branch             @relation(fields: [branchId], references: [id])
@@ -989,6 +1006,72 @@ model DocumentTemplate {
   updatedAt DateTime    @updatedAt
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+// ==================== JOLU MACHINERIES DOCUMENTS ====================
+
+model SalesContract {
+  id              String   @id @default(uuid())
+  companyId       String
+  customerId      String
+  machineryUnitId String
+  contractNumber  String   @unique
+  salePrice       Decimal  @db.Decimal(15, 2)
+  terms           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  machineryUnit MachineryUnit @relation(fields: [machineryUnitId], references: [id])
+}
+
+model DeliveryNote {
+  id               String   @id @default(uuid())
+  companyId        String
+  customerId       String
+  machineryUnitId  String
+  deliveryNumber   String   @unique
+  deliveryDate     DateTime @default(now())
+  destination      String?
+  receivedBy       String?
+  driverName       String?
+  driverIdNumber   String?
+  driverPhone      String?
+  truckNumberPlate String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  machineryUnit MachineryUnit @relation(fields: [machineryUnitId], references: [id])
+}
+
+model GatePass {
+  id               String   @id @default(uuid())
+  companyId        String
+  customerId       String
+  machineryUnitId  String
+  gatePassNumber   String   @unique
+  date             DateTime @default(now())
+  timeOut          String?
+  destination      String?
+  driverName       String?
+  driverIdNumber   String?
+  driverPhone      String?
+  truckNumberPlate String?
+  equipmentDetails String?
+  quantity         Int      @default(1)
+  supplier         String?  @default("JOLU AGRICULTURAL MACHINERIES LTD")
+  comments         String?
+  securityOfficer  String?
+  staffPresent     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  machineryUnit MachineryUnit @relation(fields: [machineryUnitId], references: [id])
 }
 
 // ==================== IMPORT/EXPORT ====================

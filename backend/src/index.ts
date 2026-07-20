@@ -24,6 +24,7 @@ import notificationsRoutes from './routes/notifications.routes';
 import importExportRoutes from './routes/import-export.routes';
 import carHireRoutes from './routes/car-hire.routes';
 import dashboardRoutes from './routes/dashboard.routes';
+import machineryDocsRoutes from './routes/machinery-docs.routes';
 
 const app = express();
 
@@ -65,6 +66,7 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/api/import-export', importExportRoutes);
 app.use('/api/car-hire', carHireRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/machinery-docs', machineryDocsRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });

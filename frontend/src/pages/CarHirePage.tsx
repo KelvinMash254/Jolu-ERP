@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { carHireApi, inventoryApi, crmApi } from '../services/api';
-import { Plus, Search, Calendar, Car, User, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { carHireApi, inventoryApi, crmApi, mpesaApi } from '../services/api';
+import api from '../services/api';
+import { Plus, Search, Upload, Download, Smartphone } from 'lucide-react';
 import { StatusBadge, LoadingSpinner } from '../components/ui/Shared';
 import toast from 'react-hot-toast';
 
 export default function CarHirePage() {
-  const [isModalOpen, setIsOpen] = useState(false);
+  const [isModalOpen, setIsIsOpen] = useState(false);
   const [searchTerm, setSearch] = useState('');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: bookingsData, isLoading } = useQuery({
@@ -19,6 +21,14 @@ export default function CarHirePage() {
 
   if (isLoading) return <LoadingSpinner />;
 
+  const filteredBookings = bookings.filter((b: any) => {
+    const term = searchTerm.toLowerCase();
+    const bNum = b.bookingNumber?.toLowerCase() || '';
+    const custName = (b.customerName || b.customer?.name || '').toLowerCase();
+    const regNum = b.vehicle?.registrationNumber?.toLowerCase() || '';
+    return bNum.includes(term) || custName.includes(term) || regNum.includes(term);
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -27,7 +37,7 @@ export default function CarHirePage() {
           <p className="text-gray-500 text-sm">Manage vehicle rentals and customer bookings</p>
         </div>
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={() => setIsIsOpen(true)}
           className="btn-primary flex items-center gap-2"
         >
           <Plus className="w-4 h-4" /> New Booking
@@ -64,40 +74,55 @@ export default function CarHirePage() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {bookings.map((booking: any) => (
-                <tr key={booking.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-4 font-bold text-jolu-600">{booking.bookingNumber}</td>
-                  <td className="px-4 py-4">
-                    <div className="font-medium">{booking.customerName || booking.customer?.name}</div>
-                    <div className="text-xs text-gray-500">{booking.phoneNumber || booking.customer?.phone}</div>
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="font-medium">{booking.vehicle.registrationNumber}</div>
-                    <div className="text-xs text-gray-500">{booking.vehicle.make} {booking.vehicle.model}</div>
-                  </td>
-                  <td className="px-4 py-4">{new Date(booking.pickupDate).toLocaleDateString()}</td>
-                  <td className="px-4 py-4">{booking.returnDate ? new Date(booking.returnDate).toLocaleDateString() : '-'}</td>
-                  <td className="px-4 py-4 text-right font-mono font-bold">
-                    KES {Number(booking.totalCharges).toLocaleString()}
-                  </td>
-                  <td className="px-4 py-4">
-                    <StatusBadge status={booking.paymentStatus} />
-                  </td>
-                  <td className="px-4 py-4">
-                     <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${
-                        booking.vehicleStatus === 'OUT_ON_HIRE' ? 'bg-blue-100 text-blue-700' :
-                        booking.vehicleStatus === 'RETURNED' ? 'bg-purple-100 text-purple-700' :
-                        'bg-green-100 text-green-700'
-                      }`}>
-                        {booking.vehicleStatus.replace(/_/g, ' ')}
-                      </span>
-                  </td>
-                  <td className="px-4 py-4">
-                    <button className="text-jolu-600 hover:underline text-xs font-bold">Details</button>
-                  </td>
-                </tr>
-              ))}
-              {bookings.length === 0 && (
+              {filteredBookings.map((booking: any) => {
+                const isExpanded = expandedId === booking.id;
+                return (
+                  <Fragment key={booking.id}>
+                      <td className="px-4 py-4 font-bold text-jolu-600">{booking.bookingNumber}</td>
+                      <td className="px-4 py-4">
+                        <div className="font-medium">{booking.customerName || booking.customer?.name}</div>
+                        <div className="text-xs text-gray-500">{booking.phoneNumber || booking.customer?.phone}</div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="font-medium">{booking.vehicle.registrationNumber}</div>
+                        <div className="text-xs text-gray-500">{booking.vehicle.make} {booking.vehicle.model}</div>
+                      </td>
+                      <td className="px-4 py-4">{new Date(booking.pickupDate).toLocaleDateString()}</td>
+                      <td className="px-4 py-4">{booking.returnDate ? new Date(booking.returnDate).toLocaleDateString() : '-'}</td>
+                      <td className="px-4 py-4 text-right font-mono font-bold">
+                        KES {Number(booking.totalCharges).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-4">
+                        <StatusBadge status={booking.paymentStatus} />
+                      </td>
+                      <td className="px-4 py-4">
+                         <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${
+                            booking.vehicleStatus === 'OUT_ON_HIRE' ? 'bg-blue-100 text-blue-700' :
+                            booking.vehicleStatus === 'RETURNED' ? 'bg-purple-100 text-purple-700' :
+                            'bg-green-100 text-green-700'
+                          }`}>
+                            {booking.vehicleStatus.replace(/_/g, ' ')}
+                          </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <button
+                          onClick={() => setExpandedId(isExpanded ? null : booking.id)}
+                          className="text-jolu-600 hover:underline text-xs font-bold"
+                        >
+                          {isExpanded ? 'Hide Details' : 'Details'}
+                        </button>
+                      </td>
+                    {isExpanded && (
+                      <tr className="bg-gray-50">
+                        <td colSpan={9} className="px-6 py-6 border-t border-b">
+                          <BookingDetailsRow booking={booking} />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+              {filteredBookings.length === 0 && (
                 <tr>
                   <td colSpan={9} className="px-4 py-12 text-center text-gray-500">
                     No bookings found. Click 'New Booking' to get started.
@@ -111,13 +136,178 @@ export default function CarHirePage() {
 
       {isModalOpen && (
         <BookingModal
-          onClose={() => setIsOpen(false)}
+          onClose={() => setIsIsOpen(false)}
           onSuccess={() => {
             queryClient.invalidateQueries({ queryKey: ['carHireBookings'] });
-            setIsOpen(false);
+            setIsIsOpen(false);
           }}
         />
       )}
+    </div>
+  );
+}
+
+function BookingDetailsRow({ booking }: { booking: any }) {
+  const queryClient = useQueryClient();
+  const [phone, setPhone] = useState(booking.phoneNumber || booking.customer?.phone || '');
+  const [stkPending, setStkPending] = useState(false);
+
+  // Upload state
+  const [signedContractFile, setSignedContract] = useState<File | null>(null);
+  const [idCardFile, setIdCard] = useState<File | null>(null);
+  const [photoFile, setPhoto] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleMpesaPrompt = async () => {
+    if (!phone) {
+      toast.error('Please enter phone number');
+      return;
+    }
+    setStkPending(true);
+    try {
+      const formattedPhone = phone.startsWith('0') ? '254' + phone.slice(1) : phone;
+      const res = await mpesaApi.stkPush({
+        phoneNumber: formattedPhone,
+        amount: booking.balanceDue,
+        accountReference: booking.bookingNumber,
+        invoiceId: booking.id, // Optional link
+      });
+      if (res.data?.ResponseCode === '0') {
+        toast.success('Mpesa STK Push sent successfully');
+      } else {
+        toast.error(res.data?.CustomerMessage || 'STK Push failed to initiate');
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to initiate Mpesa payment');
+    } finally {
+      setStkPending(false);
+    }
+  };
+
+  const handleUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!signedContractFile && !idCardFile && !photoFile) {
+      toast.error('Select at least one document to upload');
+      return;
+    }
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      if (signedContractFile) formData.append('signedContract', signedContractFile);
+      if (idCardFile) formData.append('clientIdCard', idCardFile);
+      if (photoFile) formData.append('clientPhoto', photoFile);
+
+      await api.patch(`/car-hire/${booking.id}/upload-docs`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      toast.success('Documents uploaded successfully');
+      queryClient.invalidateQueries({ queryKey: ['carHireBookings'] });
+      setSignedContract(null);
+      setIdCard(null);
+      setPhoto(null);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to upload documents');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Summary Section */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border space-y-3">
+        <h4 className="font-bold text-sm text-gray-800 border-b pb-2">Booking & Vehicle Summary</h4>
+        <div className="text-xs space-y-1.5 text-gray-600">
+          <p><span className="font-semibold">Daily Rate:</span> KES {Number(booking.dailyRate).toLocaleString()}</p>
+          <p><span className="font-semibold">Deposit Paid:</span> KES {Number(booking.depositPaid).toLocaleString()}</p>
+          <p><span className="font-semibold">Balance Due:</span> KES {Number(booking.balanceDue).toLocaleString()}</p>
+          <p><span className="font-semibold">Location:</span> {booking.location || '-'}</p>
+          <p><span className="font-semibold">Destination:</span> {booking.destination || '-'}</p>
+          <p><span className="font-semibold">Driver Assigned:</span> {booking.driverAssigned || '-'}</p>
+          {booking.remarks && <p><span className="font-semibold">Remarks:</span> {booking.remarks}</p>}
+        </div>
+      </div>
+
+      {/* Upload Documents (Diana - Admin) */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border space-y-3">
+        <h4 className="font-bold text-sm text-gray-800 border-b pb-2">Client Documentation (Admin uploads)</h4>
+        
+        {/* Existing Docs */}
+        <div className="text-xs space-y-1.5 border-b pb-3">
+          <p className="font-semibold text-gray-700">Attached Documents:</p>
+          {booking.signedContractUrl ? (
+            <a href={booking.signedContractUrl} target="_blank" rel="noreferrer" className="text-jolu-600 font-bold hover:underline flex items-center gap-1">
+              <Download className="w-3.5 h-3.5" /> Download Signed Contract
+            </a>
+          ) : <span className="text-gray-400 block text-[11px]">- Signed Contract (Not Attached)</span>}
+          
+          {booking.clientIdCardUrl ? (
+            <a href={booking.clientIdCardUrl} target="_blank" rel="noreferrer" className="text-jolu-600 font-bold hover:underline flex items-center gap-1">
+              <Download className="w-3.5 h-3.5" /> Download ID Card
+            </a>
+          ) : <span className="text-gray-400 block text-[11px]">- Client ID (Not Attached)</span>}
+          
+          {booking.clientPhotoUrl ? (
+            <a href={booking.clientPhotoUrl} target="_blank" rel="noreferrer" className="text-jolu-600 font-bold hover:underline flex items-center gap-1">
+              <Download className="w-3.5 h-3.5" /> Download Client Photo
+            </a>
+          ) : <span className="text-gray-400 block text-[11px]">- Client Photo (Not Attached)</span>}
+        </div>
+
+        {/* Upload Form */}
+        <form onSubmit={handleUpload} className="space-y-3 pt-1">
+          <div>
+            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Signed Contract (.pdf)</label>
+            <input type="file" accept="application/pdf" className="text-xs block w-full text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-[10px] file:font-semibold file:bg-jolu-50 file:text-jolu-700 hover:file:bg-jolu-100" onChange={e => setSignedContract(e.target.files?.[0] || null)} />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Client ID Card</label>
+            <input type="file" accept="image/*,application/pdf" className="text-xs block w-full text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-[10px] file:font-semibold file:bg-jolu-50 file:text-jolu-700 hover:file:bg-jolu-100" onChange={e => setIdCard(e.target.files?.[0] || null)} />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Client Photo</label>
+            <input type="file" accept="image/*" className="text-xs block w-full text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-[10px] file:font-semibold file:bg-jolu-50 file:text-jolu-700 hover:file:bg-jolu-100" onChange={e => setPhoto(e.target.files?.[0] || null)} />
+          </div>
+          <button type="submit" disabled={uploading} className="btn-primary w-full text-xs flex justify-center items-center gap-1.5 py-1.5 mt-2">
+            <Upload className="w-3.5 h-3.5" /> {uploading ? 'Uploading...' : 'Save Documents'}
+          </button>
+        </form>
+      </div>
+
+      {/* MPESA Prompts */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border space-y-3">
+        <h4 className="font-bold text-sm text-gray-800 border-b pb-2">MPESA Direct Payment System</h4>
+        <p className="text-[11px] text-gray-500">Initiate an STK Push prompt to the client's phone directly to pay bill account details.</p>
+        <div className="space-y-3 pt-2">
+          <div>
+            <label className="label text-[10px] uppercase font-bold">Client Phone Number</label>
+            <input
+              type="text"
+              placeholder="e.g. 0712345678"
+              className="input text-xs"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="label text-[10px] uppercase font-bold">Amount to Prompt (KES)</label>
+            <input
+              type="text"
+              disabled
+              className="input text-xs bg-gray-50 font-mono font-bold"
+              value={`KES ${Number(booking.balanceDue).toLocaleString()}`}
+            />
+          </div>
+          <button
+            onClick={handleMpesaPrompt}
+            disabled={stkPending || Number(booking.balanceDue) <= 0}
+            className="btn-primary w-full text-xs flex justify-center items-center gap-1.5 py-1.5 bg-green-600 hover:bg-green-700 border-none"
+          >
+            <Smartphone className="w-3.5 h-3.5" />
+            {stkPending ? 'Sending Prompt...' : 'Prompt MPESA Payment'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -133,6 +323,7 @@ function BookingModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
     pickupDate: new Date().toISOString().split('T')[0],
     returnDate: '',
     destination: '',
+    location: '',
     dailyRate: '',
     depositPaid: '',
     remarks: '',
@@ -273,7 +464,7 @@ function BookingModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             <div>
               <label className="label">Daily Rate (KES)</label>
               <input
@@ -297,6 +488,14 @@ function BookingModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
                 type="text" className="input"
                 value={formData.destination}
                 onChange={e => setFormData({...formData, destination: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="label">Location</label>
+              <input
+                type="text" className="input"
+                value={formData.location}
+                onChange={e => setFormData({...formData, location: e.target.value})}
               />
             </div>
           </div>

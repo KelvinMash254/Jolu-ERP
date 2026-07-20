@@ -6,12 +6,32 @@ import { getPagination, paginationMeta } from '../utils/pagination';
 const router = Router();
 router.use(authenticate, requireCompany);
 
+async function getSalespersonFilter(req: AuthRequest): Promise<any> {
+  if (req.user!.role === 'SUPER_ADMIN' || req.user!.role === 'GROUP_ADMIN') {
+    return undefined;
+  }
+  if (req.user!.role === 'SALES_REPRESENTATIVE') {
+    return req.user!.id;
+  }
+  if (req.user!.role === 'SALES_MANAGER') {
+    const subordinates = await prisma.user.findMany({
+      where: { managerId: req.user!.id },
+      select: { id: true }
+    });
+    const ids = subordinates.map(s => s.id);
+    ids.push(req.user!.id);
+    return { in: ids };
+  }
+  return undefined;
+}
+
 router.get('/customers', requirePermission('crm', 'read'), async (req: AuthRequest, res: Response) => {
   const { page, limit, skip } = getPagination(req.query);
   const where: Record<string, unknown> = { companyId: req.companyId! };
 
-  if (req.user!.role === 'SALES_REPRESENTATIVE') {
-    where.salespersonId = req.user!.id;
+  const salespersonFilter = await getSalespersonFilter(req);
+  if (salespersonFilter) {
+    where.salespersonId = salespersonFilter;
   }
   if (req.query.search) {
     where.OR = [
@@ -43,8 +63,14 @@ router.post('/customers', requirePermission('crm', 'create'), async (req: AuthRe
 });
 
 router.get('/customers/:id', requirePermission('crm', 'read'), async (req: AuthRequest, res: Response) => {
+  const where: Record<string, any> = { id: req.params.id, companyId: req.companyId! };
+  const salespersonFilter = await getSalespersonFilter(req);
+  if (salespersonFilter) {
+    where.salespersonId = salespersonFilter;
+  }
+
   const customer = await prisma.customer.findFirst({
-    where: { id: req.params.id, companyId: req.companyId! },
+    where,
     include: {
       salesperson: { select: { id: true, firstName: true, lastName: true } },
       activities: { orderBy: { occurredAt: 'desc' }, take: 20, include: { user: { select: { firstName: true, lastName: true } } } },
@@ -61,7 +87,10 @@ router.get('/customers/:id', requirePermission('crm', 'read'), async (req: AuthR
 
 router.get('/leads', requirePermission('crm', 'read'), async (req: AuthRequest, res: Response) => {
   const where: Record<string, unknown> = { companyId: req.companyId! };
-  if (req.user!.role === 'SALES_REPRESENTATIVE') where.salespersonId = req.user!.id;
+  const salespersonFilter = await getSalespersonFilter(req);
+  if (salespersonFilter) {
+    where.salespersonId = salespersonFilter;
+  }
   if (req.query.stage) where.pipelineStage = req.query.stage;
 
   const leads = await prisma.lead.findMany({
@@ -107,7 +136,10 @@ router.patch('/leads/:id/stage', requirePermission('crm', 'update'), async (req:
 router.get('/pipeline/kanban', requirePermission('crm', 'read'), async (req: AuthRequest, res: Response) => {
   const stages = ['NEW_LEAD', 'QUALIFIED', 'PROPOSAL_SENT', 'APPLICATION_SUBMITTED', 'BANK_APPROVAL', 'WON', 'LOST'];
   const where: Record<string, unknown> = { companyId: req.companyId! };
-  if (req.user!.role === 'SALES_REPRESENTATIVE') where.salespersonId = req.user!.id;
+  const salespersonFilter = await getSalespersonFilter(req);
+  if (salespersonFilter) {
+    where.salespersonId = salespersonFilter;
+  }
 
   const kanban = await Promise.all(
     stages.map(async (stage) => ({
