@@ -78,6 +78,7 @@ export default function CarHirePage() {
                 const isExpanded = expandedId === booking.id;
                 return (
                   <Fragment key={booking.id}>
+                    <tr className="hover:bg-gray-50 border-t">
                       <td className="px-4 py-4 font-bold text-jolu-600">{booking.bookingNumber}</td>
                       <td className="px-4 py-4">
                         <div className="font-medium">{booking.customerName || booking.customer?.name}</div>
@@ -112,6 +113,7 @@ export default function CarHirePage() {
                           {isExpanded ? 'Hide Details' : 'Details'}
                         </button>
                       </td>
+                    </tr>
                     {isExpanded && (
                       <tr className="bg-gray-50">
                         <td colSpan={9} className="px-6 py-6 border-t border-b">

@@ -7,84 +7,118 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ==================== CORE & MULTI-COMPANY ====================
+
+enum CompanyCode {
+  MACHINERIES
+  SECURITY
+  AUTOMOBILE
+}
+
+enum BranchCode {
+  HEAD_OFFICE
+  NAIROBI
+  NAKURU
+}
+
 model Company {
-  id                String                     @id @default(uuid())
-  code              CompanyCode                @unique
-  name              String
-  legalName         String
-  kraPin            String?
-  address           String?
-  phone             String?
-  email             String?
-  ccEmail           String?
-  website           String?
-  logoUrl           String?
-  currency          String                     @default("KES")
-  isActive          Boolean                    @default(true)
-  createdAt         DateTime                   @default(now())
-  updatedAt         DateTime                   @updatedAt
-  auditLogs         AuditLog[]
-  bankFinancingApps BankFinancingApplication[]
+  id        String      @id @default(uuid())
+  code      CompanyCode @unique
+  name      String
+  legalName String
+  kraPin    String?
+  address   String?
+  phone     String?
+  email     String?
+  ccEmail   String?
+  website   String?
+  logoUrl   String?
+  currency  String      @default("KES")
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
   branches          Branch[]
-  carHireBookings   CarHireBooking[]
-  chartOfAccounts   ChartOfAccount[]
+  userCompanies     UserCompany[]
   customers         Customer[]
-  deliveryNotes     DeliveryNote[]
-  documentTemplates DocumentTemplate[]
-  gatePasses        GatePass[]
-  guards            Guard[]
-  importExportJobs  ImportExportJob[]
-  invoices          Invoice[]
-  journalEntries    JournalEntry[]
   leads             Lead[]
   machineryUnits    MachineryUnit[]
-  mpesaTransactions MpesaTransaction[]
-  notifications     Notification[]
-  pettyCashAccounts PettyCashAccount[]
-  salesContracts    SalesContract[]
+  vehicles          Vehicle[]
+  spareParts        SparePart[]
   securityClients   SecurityClient[]
   securityContracts SecurityContract[]
-  serviceTickets    ServiceTicket[]
+  guards            Guard[]
   sites             Site[]
-  spareParts        SparePart[]
-  userCompanies     UserCompany[]
-  vehicles          Vehicle[]
+  invoices          Invoice[]
+  chartOfAccounts   ChartOfAccount[]
+  journalEntries    JournalEntry[]
+  bankFinancingApps BankFinancingApplication[]
+  serviceTickets    ServiceTicket[]
+  pettyCashAccounts PettyCashAccount[]
+  notifications     Notification[]
+  documentTemplates DocumentTemplate[]
+  importExportJobs  ImportExportJob[]
+  mpesaTransactions MpesaTransaction[]
+  auditLogs         AuditLog[]
+  carHireBookings   CarHireBooking[]
+  salesContracts    SalesContract[]
+  deliveryNotes     DeliveryNote[]
+  gatePasses        GatePass[]
 }
 
 model Branch {
-  id                String             @id @default(uuid())
-  companyId         String
-  code              BranchCode
-  name              String
-  address           String?
-  phone             String?
-  isActive          Boolean            @default(true)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  id        String     @id @default(uuid())
+  companyId String
+  code      BranchCode
+  name      String
+  address   String?
+  phone     String?
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
   company           Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  pettyCashAccounts PettyCashAccount[]
   userBranches      UserBranch[]
+  pettyCashAccounts PettyCashAccount[]
 
   @@unique([companyId, code])
 }
 
+// ==================== AUTH & RBAC ====================
+
+enum RoleName {
+  SUPER_ADMIN
+  GROUP_ADMIN
+  COMPANY_ADMIN
+  SALES_MANAGER
+  SALES_REPRESENTATIVE
+  TECHNICIAN
+  FINANCE_TEAM
+  INVENTORY_MANAGER
+  BRANCH_ADMIN_NAIROBI
+  BRANCH_ADMIN_NAKURU
+  AUDITOR
+}
+
 model Role {
-  id          String           @id @default(uuid())
-  name        RoleName         @unique
+  id          String   @id @default(uuid())
+  name        RoleName @unique
   displayName String
   description String?
-  isSystem    Boolean          @default(true)
-  createdAt   DateTime         @default(now())
+  isSystem    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
   permissions RolePermission[]
   users       User[]
 }
 
 model Permission {
-  id          String           @id @default(uuid())
+  id          String  @id @default(uuid())
   module      String
   action      String
   description String?
-  roles       RolePermission[]
+
+  roles RolePermission[]
 
   @@unique([module, action])
 }
@@ -92,51 +126,55 @@ model Permission {
 model RolePermission {
   roleId       String
   permissionId String
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@id([roleId, permissionId])
 }
 
 model User {
-  id                 String             @id @default(uuid())
-  email              String             @unique
-  passwordHash       String
-  firstName          String
-  lastName           String
-  phone              String?
-  avatarUrl          String?
-  roleId             String
-  isActive           Boolean            @default(true)
-  twoFactorSecret    String?
-  twoFactorEnabled   Boolean            @default(false)
-  lastLoginAt        DateTime?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  managerId          String?
-  activities         Activity[]
-  auditLogs          AuditLog[]
-  assignedCustomers  Customer[]         @relation("CustomerSalesperson")
-  assignedLeads      Lead[]             @relation("LeadSalesperson")
-  notifications      Notification[]
-  pettyCashApprovals PettyCashRequest[] @relation("PettyCashApprover")
-  pettyCashRequests  PettyCashRequest[]
-  reminders          Reminder[]
-  technicianTickets  ServiceTicket[]    @relation("TicketTechnician")
-  manager            User?              @relation("UserHierarchy", fields: [managerId], references: [id])
-  subordinates       User[]             @relation("UserHierarchy")
+  id               String    @id @default(uuid())
+  email            String    @unique
+  passwordHash     String
+  firstName        String
+  lastName         String
+  phone            String?
+  avatarUrl        String?
+  roleId           String
+  isActive         Boolean   @default(true)
+  twoFactorSecret  String?
+  twoFactorEnabled Boolean   @default(false)
+  lastLoginAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  managerId        String?
+
   role               Role               @relation(fields: [roleId], references: [id])
-  branches           UserBranch[]
   companies          UserCompany[]
+  branches           UserBranch[]
   sessions           UserSession[]
+  auditLogs          AuditLog[]
+  assignedLeads      Lead[]             @relation("LeadSalesperson")
+  assignedCustomers  Customer[]         @relation("CustomerSalesperson")
+  technicianTickets  ServiceTicket[]    @relation("TicketTechnician")
+  activities         Activity[]
+  reminders          Reminder[]
+  notifications      Notification[]
+  pettyCashRequests  PettyCashRequest[]
+  pettyCashApprovals PettyCashRequest[] @relation("PettyCashApprover")
+
+  manager      User?  @relation("UserHierarchy", fields: [managerId], references: [id])
+  subordinates User[] @relation("UserHierarchy")
 }
 
 model UserCompany {
   userId    String
   companyId String
   isPrimary Boolean @default(false)
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@id([userId, companyId])
 }
@@ -144,8 +182,9 @@ model UserCompany {
 model UserBranch {
   userId   String
   branchId String
-  branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
   @@id([userId, branchId])
 }
@@ -160,7 +199,8 @@ model UserSession {
   deviceInfo   String?
   expiresAt    DateTime
   createdAt    DateTime @default(now())
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model AuditLog {
@@ -177,709 +217,16 @@ model AuditLog {
   userAgent  String?
   deviceInfo String?
   createdAt  DateTime @default(now())
-  company    Company? @relation(fields: [companyId], references: [id])
-  user       User?    @relation(fields: [userId], references: [id])
+
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
   @@index([companyId, createdAt])
   @@index([module, action])
 }
 
-model Customer {
-  id                String                     @id @default(uuid())
-  companyId         String
-  name              String
-  idNumber          String?
-  kraPin            String?
-  phone             String
-  email             String?
-  county            String?
-  physicalAddress   String?
-  financingBank     String?
-  loanAmount        Decimal?                   @db.Decimal(15, 2)
-  depositPaid       Decimal?                   @default(0) @db.Decimal(15, 2)
-  approvalStatus    String?
-  salespersonId     String?
-  technicianId      String?
-  administratorId   String?
-  isActive          Boolean                    @default(true)
-  createdAt         DateTime                   @default(now())
-  updatedAt         DateTime                   @updatedAt
-  activities        Activity[]
-  bankFinancingApps BankFinancingApplication[]
-  carHireBookings   CarHireBooking[]
-  company           Company                    @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  salesperson       User?                      @relation("CustomerSalesperson", fields: [salespersonId], references: [id])
-  DeliveryNote      DeliveryNote[]
-  documents         Document[]
-  GatePass          GatePass[]
-  invoices          Invoice[]
-  leads             Lead[]
-  mpesaTransactions MpesaTransaction[]
-  reminders         Reminder[]
-  SalesContract     SalesContract[]
-  securityContracts SecurityContract[]
-  serviceTickets    ServiceTicket[]
-
-  @@index([companyId, phone])
-  @@index([salespersonId])
-}
-
-model Lead {
-  id             String        @id @default(uuid())
-  companyId      String
-  customerId     String?
-  title          String
-  stage          LeadStage     @default(LEAD)
-  pipelineStage  PipelineStage @default(NEW_LEAD)
-  source         String?
-  estimatedValue Decimal?      @db.Decimal(15, 2)
-  notes          String?
-  salespersonId  String?
-  lostReason     String?
-  wonAt          DateTime?
-  lostAt         DateTime?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  activities     Activity[]
-  documents      Document[]
-  company        Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer       Customer?     @relation(fields: [customerId], references: [id])
-  salesperson    User?         @relation("LeadSalesperson", fields: [salespersonId], references: [id])
-  reminders      Reminder[]
-
-  @@index([companyId, stage])
-  @@index([salespersonId, pipelineStage])
-}
-
-model Activity {
-  id          String       @id @default(uuid())
-  type        ActivityType
-  subject     String
-  description String?
-  customerId  String?
-  leadId      String?
-  userId      String
-  metadata    Json?
-  occurredAt  DateTime     @default(now())
-  createdAt   DateTime     @default(now())
-  customer    Customer?    @relation(fields: [customerId], references: [id])
-  lead        Lead?        @relation(fields: [leadId], references: [id])
-  user        User         @relation(fields: [userId], references: [id])
-}
-
-model Reminder {
-  id          String    @id @default(uuid())
-  title       String
-  description String?
-  dueAt       DateTime
-  isCompleted Boolean   @default(false)
-  customerId  String?
-  leadId      String?
-  userId      String
-  createdAt   DateTime  @default(now())
-  customer    Customer? @relation(fields: [customerId], references: [id])
-  lead        Lead?     @relation(fields: [leadId], references: [id])
-  user        User      @relation(fields: [userId], references: [id])
-}
-
-model Document {
-  id         String    @id @default(uuid())
-  name       String
-  fileUrl    String
-  fileType   String?
-  fileSize   Int?
-  customerId String?
-  leadId     String?
-  uploadedBy String?
-  createdAt  DateTime  @default(now())
-  customer   Customer? @relation(fields: [customerId], references: [id])
-  lead       Lead?     @relation(fields: [leadId], references: [id])
-}
-
-model MachineryUnit {
-  id                 String                     @id @default(uuid())
-  companyId          String
-  productName        String
-  category           MachineryCategory
-  brand              String
-  model              String
-  chassisNumber      String?
-  engineNumber       String?
-  registrationNumber String?
-  serialNumber       String?                    @unique
-  purchaseDate       DateTime?
-  supplier           String?
-  costPrice          Decimal                    @db.Decimal(15, 2)
-  sellingPrice       Decimal                    @db.Decimal(15, 2)
-  stockStatus        StockStatus                @default(IN_STOCK)
-  reservedForId      String?
-  soldAt             DateTime?
-  deliveredAt        DateTime?
-  createdAt          DateTime                   @default(now())
-  updatedAt          DateTime                   @updatedAt
-  bankAllocations    BankFinancingApplication[] @relation("AllocatedUnit")
-  DeliveryNote       DeliveryNote[]
-  GatePass           GatePass[]
-  lifecycleEvents    MachineryLifecycleEvent[]
-  company            Company                    @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  SalesContract      SalesContract[]
-  serviceTickets     ServiceTicket[]
-
-  @@index([companyId, stockStatus])
-  @@index([category])
-}
-
-model MachineryLifecycleEvent {
-  id              String        @id @default(uuid())
-  machineryUnitId String
-  eventType       String
-  description     String?
-  performedBy     String?
-  metadata        Json?
-  createdAt       DateTime      @default(now())
-  machineryUnit   MachineryUnit @relation(fields: [machineryUnitId], references: [id], onDelete: Cascade)
-}
-
-model BankFinancingApplication {
-  id               String         @id @default(uuid())
-  companyId        String
-  customerId       String
-  bankName         String
-  loanAmount       Decimal        @db.Decimal(15, 2)
-  depositAmount    Decimal        @default(0) @db.Decimal(15, 2)
-  remainingBalance Decimal?       @db.Decimal(15, 2)
-  stage            FinancingStage @default(DOCUMENTS_SUBMITTED)
-  approvalDate     DateTime?
-  rejectionReason  String?
-  allocatedUnitId  String?
-  submittedAt      DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  allocatedUnit    MachineryUnit? @relation("AllocatedUnit", fields: [allocatedUnitId], references: [id])
-  company          Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer         Customer       @relation(fields: [customerId], references: [id])
-
-  @@index([companyId, stage])
-}
-
-model ServiceTicket {
-  id              String              @id @default(uuid())
-  companyId       String
-  ticketNumber    String              @unique
-  customerId      String
-  machineryUnitId String?
-  vehicleId       String?
-  problem         String
-  status          TicketStatus        @default(PENDING)
-  technicianId    String?
-  scheduledAt     DateTime?
-  completedAt     DateTime?
-  labourHours     Decimal?            @db.Decimal(8, 2)
-  technicianNotes String?
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  company         Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer        Customer            @relation(fields: [customerId], references: [id])
-  machineryUnit   MachineryUnit?      @relation(fields: [machineryUnitId], references: [id])
-  technician      User?               @relation("TicketTechnician", fields: [technicianId], references: [id])
-  vehicle         Vehicle?            @relation(fields: [vehicleId], references: [id])
-  sparePartsUsed  ServiceTicketPart[]
-
-  @@index([companyId, status])
-  @@index([technicianId])
-}
-
-model ServiceTicketPart {
-  id          String        @id @default(uuid())
-  ticketId    String
-  sparePartId String
-  quantity    Int
-  unitCost    Decimal       @db.Decimal(15, 2)
-  sparePart   SparePart     @relation(fields: [sparePartId], references: [id])
-  ticket      ServiceTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-}
-
-model SparePart {
-  id             String              @id @default(uuid())
-  companyId      String
-  partNumber     String
-  partName       String
-  category       String
-  supplier       String?
-  quantity       Int                 @default(0)
-  costPrice      Decimal             @db.Decimal(15, 2)
-  sellingPrice   Decimal             @db.Decimal(15, 2)
-  reorderLevel   Int                 @default(10)
-  barcode        String?             @unique
-  qrCode         String?
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-  ticketParts    ServiceTicketPart[]
-  company        Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  stockMovements SparePartMovement[]
-
-  @@unique([companyId, partNumber])
-  @@index([companyId, quantity])
-}
-
-model SparePartMovement {
-  id          String            @id @default(uuid())
-  sparePartId String
-  type        StockMovementType
-  quantity    Int
-  reference   String?
-  notes       String?
-  performedBy String?
-  createdAt   DateTime          @default(now())
-  sparePart   SparePart         @relation(fields: [sparePartId], references: [id], onDelete: Cascade)
-}
-
-model SecurityClient {
-  id            String             @id @default(uuid())
-  companyId     String
-  name          String
-  contactPerson String?
-  phone         String
-  email         String?
-  address       String?
-  kraPin        String?
-  isActive      Boolean            @default(true)
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-  invoices      Invoice[]
-  company       Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  contracts     SecurityContract[]
-  sites         Site[]
-}
-
-model SecurityContract {
-  id             String            @id @default(uuid())
-  companyId      String
-  clientId       String
-  customerId     String?
-  contractNumber String            @unique
-  startDate      DateTime
-  endDate        DateTime?
-  monthlyFee     Decimal           @db.Decimal(15, 2)
-  guardsCount    Int               @default(1)
-  terms          String?
-  status         String            @default("ACTIVE")
-  fileUrl        String?
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
-  deployments    GuardDeployment[]
-  invoices       Invoice[]
-  client         SecurityClient    @relation(fields: [clientId], references: [id])
-  company        Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer       Customer?         @relation(fields: [customerId], references: [id])
-}
-
-model Guard {
-  id          String            @id @default(uuid())
-  companyId   String
-  employeeNo  String
-  firstName   String
-  lastName    String
-  phone       String
-  idNumber    String?
-  licenseNo   String?
-  isActive    Boolean           @default(true)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  company     Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  attendance  GuardAttendance[]
-  deployments GuardDeployment[]
-
-  @@unique([companyId, employeeNo])
-}
-
-model Site {
-  id          String            @id @default(uuid())
-  companyId   String
-  clientId    String
-  name        String
-  address     String
-  latitude    Decimal?          @db.Decimal(10, 7)
-  longitude   Decimal?          @db.Decimal(10, 7)
-  isActive    Boolean           @default(true)
-  createdAt   DateTime          @default(now())
-  deployments GuardDeployment[]
-  client      SecurityClient    @relation(fields: [clientId], references: [id])
-  company     Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
-}
-
-model GuardDeployment {
-  id         String            @id @default(uuid())
-  contractId String
-  guardId    String
-  siteId     String
-  startDate  DateTime
-  endDate    DateTime?
-  shift      String?
-  isActive   Boolean           @default(true)
-  attendance GuardAttendance[]
-  contract   SecurityContract  @relation(fields: [contractId], references: [id])
-  guard      Guard             @relation(fields: [guardId], references: [id])
-  site       Site              @relation(fields: [siteId], references: [id])
-}
-
-model GuardAttendance {
-  id           String          @id @default(uuid())
-  deploymentId String
-  guardId      String
-  checkIn      DateTime
-  checkOut     DateTime?
-  notes        String?
-  deployment   GuardDeployment @relation(fields: [deploymentId], references: [id])
-  guard        Guard           @relation(fields: [guardId], references: [id])
-}
-
-model Vehicle {
-  id                 String           @id @default(uuid())
-  companyId          String
-  registrationNumber String
-  chassisNumber      String?
-  engineNumber       String?
-  make               String
-  model              String
-  year               Int
-  mileage            Int              @default(0)
-  purchasePrice      Decimal          @db.Decimal(15, 2)
-  sellingPrice       Decimal          @db.Decimal(15, 2)
-  stockStatus        StockStatus      @default(IN_STOCK)
-  soldAt             DateTime?
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-  bookings           CarHireBooking[]
-  serviceTickets     ServiceTicket[]
-  company            Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
-  @@unique([companyId, registrationNumber])
-}
-
-model CarHireBooking {
-  id                String        @id @default(uuid())
-  companyId         String
-  customerId        String?
-  vehicleId         String
-  bookingNumber     String
-  customerName      String?
-  phoneNumber       String?
-  idNumber          String?
-  driverAssigned    String?
-  pickupDate        DateTime
-  returnDate        DateTime?
-  destination       String?
-  dailyRate         Decimal       @db.Decimal(15, 2)
-  totalCharges      Decimal       @db.Decimal(15, 2)
-  depositPaid       Decimal       @default(0) @db.Decimal(15, 2)
-  balanceDue        Decimal       @db.Decimal(15, 2)
-  paymentStatus     PaymentStatus @default(PENDING)
-  vehicleStatus     VehicleStatus @default(AVAILABLE)
-  remarks           String?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  clientIdCardUrl   String?
-  clientPhotoUrl    String?
-  location          String?
-  signedContractUrl String?
-  company           Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer          Customer?     @relation(fields: [customerId], references: [id])
-  vehicle           Vehicle       @relation(fields: [vehicleId], references: [id])
-
-  @@unique([companyId, bookingNumber])
-  @@index([companyId, pickupDate])
-}
-
-model ChartOfAccount {
-  id           String           @id @default(uuid())
-  companyId    String
-  code         String
-  name         String
-  type         AccountType
-  parentId     String?
-  isActive     Boolean          @default(true)
-  balance      Decimal          @default(0) @db.Decimal(15, 2)
-  createdAt    DateTime         @default(now())
-  company      Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  parent       ChartOfAccount?  @relation("AccountHierarchy", fields: [parentId], references: [id])
-  children     ChartOfAccount[] @relation("AccountHierarchy")
-  journalLines JournalLine[]
-
-  @@unique([companyId, code])
-}
-
-model JournalEntry {
-  id          String        @id @default(uuid())
-  companyId   String
-  entryNumber String
-  date        DateTime      @default(now())
-  description String
-  reference   String?
-  isPosted    Boolean       @default(false)
-  sourceType  String?
-  sourceId    String?
-  createdBy   String?
-  createdAt   DateTime      @default(now())
-  invoice     Invoice?
-  company     Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  lines       JournalLine[]
-
-  @@unique([companyId, entryNumber])
-  @@index([companyId, date])
-}
-
-model JournalLine {
-  id          String         @id @default(uuid())
-  journalId   String
-  accountId   String
-  debit       Decimal        @default(0) @db.Decimal(15, 2)
-  credit      Decimal        @default(0) @db.Decimal(15, 2)
-  description String?
-  account     ChartOfAccount @relation(fields: [accountId], references: [id])
-  journal     JournalEntry   @relation(fields: [journalId], references: [id], onDelete: Cascade)
-}
-
-model Invoice {
-  id                String             @id @default(uuid())
-  companyId         String
-  customerId        String?
-  securityClientId  String?
-  contractId        String?
-  invoiceNumber     String
-  type              InvoiceType
-  status            InvoiceStatus      @default(DRAFT)
-  issueDate         DateTime           @default(now())
-  dueDate           DateTime?
-  subtotal          Decimal            @db.Decimal(15, 2)
-  taxAmount         Decimal            @default(0) @db.Decimal(15, 2)
-  totalAmount       Decimal            @db.Decimal(15, 2)
-  amountPaid        Decimal            @default(0) @db.Decimal(15, 2)
-  notes             String?
-  pdfUrl            String?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  journalEntryId    String?            @unique
-  company           Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  contract          SecurityContract?  @relation(fields: [contractId], references: [id])
-  customer          Customer?          @relation(fields: [customerId], references: [id])
-  journalEntry      JournalEntry?      @relation(fields: [journalEntryId], references: [id])
-  securityClient    SecurityClient?    @relation(fields: [securityClientId], references: [id])
-  lines             InvoiceLine[]
-  payments          InvoicePayment[]
-  mpesaTransactions MpesaTransaction[]
-
-  @@unique([companyId, invoiceNumber])
-  @@index([companyId, status])
-}
-
-model InvoiceLine {
-  id          String  @id @default(uuid())
-  invoiceId   String
-  description String
-  quantity    Decimal @default(1) @db.Decimal(10, 2)
-  unitPrice   Decimal @db.Decimal(15, 2)
-  taxRate     Decimal @default(16) @db.Decimal(5, 2)
-  total       Decimal @db.Decimal(15, 2)
-  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-}
-
-model InvoicePayment {
-  id            String   @id @default(uuid())
-  invoiceId     String
-  amount        Decimal  @db.Decimal(15, 2)
-  paymentMethod String
-  reference     String?
-  paidAt        DateTime @default(now())
-  receiptUrl    String?
-  invoice       Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-}
-
-model MpesaTransaction {
-  id              String    @id @default(uuid())
-  companyId       String
-  transactionCode String    @unique
-  amount          Decimal   @db.Decimal(15, 2)
-  phoneNumber     String
-  customerId      String?
-  invoiceId       String?
-  status          String    @default("COMPLETED")
-  rawPayload      Json?
-  processedAt     DateTime  @default(now())
-  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer        Customer? @relation(fields: [customerId], references: [id])
-  invoice         Invoice?  @relation(fields: [invoiceId], references: [id])
-}
-
-model PettyCashAccount {
-  id        String             @id @default(uuid())
-  companyId String
-  branchId  String
-  name      String
-  balance   Decimal            @default(0) @db.Decimal(15, 2)
-  limit     Decimal            @db.Decimal(15, 2)
-  createdAt DateTime           @default(now())
-  branch    Branch             @relation(fields: [branchId], references: [id])
-  company   Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  expenses  PettyCashExpense[]
-  requests  PettyCashRequest[]
-}
-
-model PettyCashRequest {
-  id          String           @id @default(uuid())
-  accountId   String
-  requestedBy String
-  amount      Decimal          @db.Decimal(15, 2)
-  purpose     String
-  status      PettyCashStatus  @default(PENDING)
-  approvedBy  String?
-  approvedAt  DateTime?
-  createdAt   DateTime         @default(now())
-  account     PettyCashAccount @relation(fields: [accountId], references: [id])
-  approver    User?            @relation("PettyCashApprover", fields: [approvedBy], references: [id])
-  requester   User             @relation(fields: [requestedBy], references: [id])
-}
-
-model PettyCashExpense {
-  id          String           @id @default(uuid())
-  accountId   String
-  amount      Decimal          @db.Decimal(15, 2)
-  description String
-  category    String?
-  receiptUrl  String?
-  recordedBy  String?
-  createdAt   DateTime         @default(now())
-  account     PettyCashAccount @relation(fields: [accountId], references: [id])
-}
-
-model Notification {
-  id        String              @id @default(uuid())
-  userId    String
-  companyId String?
-  channel   NotificationChannel @default(IN_APP)
-  title     String
-  message   String
-  isRead    Boolean             @default(false)
-  metadata  Json?
-  createdAt DateTime            @default(now())
-  company   Company?            @relation(fields: [companyId], references: [id])
-  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model DocumentTemplate {
-  id        String      @id @default(uuid())
-  companyId String
-  name      String
-  type      InvoiceType
-  content   String
-  isDefault Boolean     @default(false)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  company   Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
-}
-
-model SalesContract {
-  id              String        @id @default(uuid())
-  companyId       String
-  customerId      String
-  machineryUnitId String
-  contractNumber  String        @unique
-  salePrice       Decimal       @db.Decimal(15, 2)
-  terms           String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer        Customer      @relation(fields: [customerId], references: [id])
-  machineryUnit   MachineryUnit @relation(fields: [machineryUnitId], references: [id])
-}
-
-model DeliveryNote {
-  id               String        @id @default(uuid())
-  companyId        String
-  customerId       String
-  machineryUnitId  String
-  deliveryNumber   String        @unique
-  deliveryDate     DateTime      @default(now())
-  destination      String?
-  receivedBy       String?
-  driverName       String?
-  driverIdNumber   String?
-  driverPhone      String?
-  truckNumberPlate String?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  company          Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer         Customer      @relation(fields: [customerId], references: [id])
-  machineryUnit    MachineryUnit @relation(fields: [machineryUnitId], references: [id])
-}
-
-model GatePass {
-  id               String        @id @default(uuid())
-  companyId        String
-  customerId       String
-  machineryUnitId  String
-  gatePassNumber   String        @unique
-  date             DateTime      @default(now())
-  timeOut          String?
-  destination      String?
-  driverName       String?
-  driverIdNumber   String?
-  driverPhone      String?
-  truckNumberPlate String?
-  equipmentDetails String?
-  quantity         Int           @default(1)
-  supplier         String?       @default("JOLU AGRICULTURAL MACHINERIES LTD")
-  comments         String?
-  securityOfficer  String?
-  staffPresent     String?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  company          Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer         Customer      @relation(fields: [customerId], references: [id])
-  machineryUnit    MachineryUnit @relation(fields: [machineryUnitId], references: [id])
-}
-
-model ImportExportJob {
-  id          String    @id @default(uuid())
-  companyId   String
-  type        JobType
-  entity      String
-  format      String
-  fileUrl     String?
-  status      JobStatus @default(PENDING)
-  recordCount Int?
-  errorLog    String?
-  createdBy   String?
-  createdAt   DateTime  @default(now())
-  completedAt DateTime?
-  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-}
-
-enum CompanyCode {
-  MACHINERIES
-  SECURITY
-  AUTOMOBILE
-}
-
-enum BranchCode {
-  HEAD_OFFICE
-  NAIROBI
-  NAKURU
-}
-
-enum RoleName {
-  SUPER_ADMIN
-  GROUP_ADMIN
-  COMPANY_ADMIN
-  SALES_MANAGER
-  SALES_REPRESENTATIVE
-  TECHNICIAN
-  FINANCE_TEAM
-  INVENTORY_MANAGER
-  BRANCH_ADMIN_NAIROBI
-  BRANCH_ADMIN_NAKURU
-  AUDITOR
-}
+// ==================== CRM ====================
 
 enum LeadStage {
   LEAD
@@ -917,6 +264,125 @@ enum ActivityType {
   WHATSAPP
 }
 
+model Customer {
+  id              String   @id @default(uuid())
+  companyId       String
+  name            String
+  idNumber        String?
+  kraPin          String?
+  phone           String
+  email           String?
+  county          String?
+  physicalAddress String?
+  financingBank   String?
+  loanAmount      Decimal? @db.Decimal(15, 2)
+  depositPaid     Decimal? @default(0) @db.Decimal(15, 2)
+  approvalStatus  String?
+  salespersonId   String?
+  technicianId    String?
+  administratorId String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  company           Company                    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  salesperson       User?                      @relation("CustomerSalesperson", fields: [salespersonId], references: [id])
+  leads             Lead[]
+  activities        Activity[]
+  reminders         Reminder[]
+  documents         Document[]
+  invoices          Invoice[]
+  bankFinancingApps BankFinancingApplication[]
+  serviceTickets    ServiceTicket[]
+  mpesaTransactions MpesaTransaction[]
+  securityContracts SecurityContract[]
+  carHireBookings   CarHireBooking[]
+  SalesContract     SalesContract[]
+  DeliveryNote      DeliveryNote[]
+  GatePass          GatePass[]
+
+  @@index([companyId, phone])
+  @@index([salespersonId])
+}
+
+model Lead {
+  id             String        @id @default(uuid())
+  companyId      String
+  customerId     String?
+  title          String
+  stage          LeadStage     @default(LEAD)
+  pipelineStage  PipelineStage @default(NEW_LEAD)
+  source         String?
+  estimatedValue Decimal?      @db.Decimal(15, 2)
+  notes          String?
+  salespersonId  String?
+  lostReason     String?
+  wonAt          DateTime?
+  lostAt         DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  company     Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer    Customer?  @relation(fields: [customerId], references: [id])
+  salesperson User?      @relation("LeadSalesperson", fields: [salespersonId], references: [id])
+  activities  Activity[]
+  reminders   Reminder[]
+  documents   Document[]
+
+  @@index([companyId, stage])
+  @@index([salespersonId, pipelineStage])
+}
+
+model Activity {
+  id          String       @id @default(uuid())
+  type        ActivityType
+  subject     String
+  description String?
+  customerId  String?
+  leadId      String?
+  userId      String
+  metadata    Json?
+  occurredAt  DateTime     @default(now())
+  createdAt   DateTime     @default(now())
+
+  customer Customer? @relation(fields: [customerId], references: [id])
+  lead     Lead?     @relation(fields: [leadId], references: [id])
+  user     User      @relation(fields: [userId], references: [id])
+}
+
+model Reminder {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  dueAt       DateTime
+  isCompleted Boolean  @default(false)
+  customerId  String?
+  leadId      String?
+  userId      String
+  createdAt   DateTime @default(now())
+
+  customer Customer? @relation(fields: [customerId], references: [id])
+  lead     Lead?     @relation(fields: [leadId], references: [id])
+  user     User      @relation(fields: [userId], references: [id])
+}
+
+model Document {
+  id         String   @id @default(uuid())
+  name       String
+  fileUrl    String
+  fileType   String?
+  fileSize   Int?
+  customerId String?
+  leadId     String?
+  uploadedBy String?
+  createdAt  DateTime @default(now())
+
+  customer Customer? @relation(fields: [customerId], references: [id])
+  lead     Lead?     @relation(fields: [leadId], references: [id])
+}
+
+// ==================== MACHINERIES ====================
+
 enum MachineryCategory {
   TRACTOR
   HARVESTER
@@ -930,6 +396,54 @@ enum StockStatus {
   DELIVERED
 }
 
+model MachineryUnit {
+  id                 String            @id @default(uuid())
+  companyId          String
+  productName        String
+  category           MachineryCategory
+  brand              String
+  model              String
+  chassisNumber      String?
+  engineNumber       String?
+  registrationNumber String?
+  serialNumber       String?           @unique
+  purchaseDate       DateTime?
+  supplier           String?
+  costPrice          Decimal           @db.Decimal(15, 2)
+  sellingPrice       Decimal           @db.Decimal(15, 2)
+  stockStatus        StockStatus       @default(IN_STOCK)
+  reservedForId      String?
+  soldAt             DateTime?
+  deliveredAt        DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  company         Company                    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  lifecycleEvents MachineryLifecycleEvent[]
+  serviceTickets  ServiceTicket[]
+  bankAllocations BankFinancingApplication[] @relation("AllocatedUnit")
+  SalesContract   SalesContract[]
+  DeliveryNote    DeliveryNote[]
+  GatePass        GatePass[]
+
+  @@index([companyId, stockStatus])
+  @@index([category])
+}
+
+model MachineryLifecycleEvent {
+  id              String   @id @default(uuid())
+  machineryUnitId String
+  eventType       String
+  description     String?
+  performedBy     String?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  machineryUnit MachineryUnit @relation(fields: [machineryUnitId], references: [id], onDelete: Cascade)
+}
+
+// ==================== BANK FINANCING ====================
+
 enum FinancingStage {
   DOCUMENTS_SUBMITTED
   BANK_RECEIVED
@@ -941,6 +455,30 @@ enum FinancingStage {
   DELIVERED
 }
 
+model BankFinancingApplication {
+  id               String         @id @default(uuid())
+  companyId        String
+  customerId       String
+  bankName         String
+  loanAmount       Decimal        @db.Decimal(15, 2)
+  depositAmount    Decimal        @default(0) @db.Decimal(15, 2)
+  remainingBalance Decimal?       @db.Decimal(15, 2)
+  stage            FinancingStage @default(DOCUMENTS_SUBMITTED)
+  approvalDate     DateTime?
+  rejectionReason  String?
+  allocatedUnitId  String?
+  submittedAt      DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer      Customer       @relation(fields: [customerId], references: [id])
+  allocatedUnit MachineryUnit? @relation("AllocatedUnit", fields: [allocatedUnitId], references: [id])
+
+  @@index([companyId, stage])
+}
+
+// ==================== AFTER SALES ====================
+
 enum TicketStatus {
   PENDING
   ASSIGNED
@@ -950,11 +488,259 @@ enum TicketStatus {
   CLOSED
 }
 
+model ServiceTicket {
+  id              String       @id @default(uuid())
+  companyId       String
+  ticketNumber    String       @unique
+  customerId      String
+  machineryUnitId String?
+  vehicleId       String?
+  problem         String
+  status          TicketStatus @default(PENDING)
+  technicianId    String?
+  scheduledAt     DateTime?
+  completedAt     DateTime?
+  labourHours     Decimal?     @db.Decimal(8, 2)
+  technicianNotes String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  company        Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer       Customer            @relation(fields: [customerId], references: [id])
+  machineryUnit  MachineryUnit?      @relation(fields: [machineryUnitId], references: [id])
+  vehicle        Vehicle?            @relation(fields: [vehicleId], references: [id])
+  technician     User?               @relation("TicketTechnician", fields: [technicianId], references: [id])
+  sparePartsUsed ServiceTicketPart[]
+
+  @@index([companyId, status])
+  @@index([technicianId])
+}
+
+model ServiceTicketPart {
+  id          String  @id @default(uuid())
+  ticketId    String
+  sparePartId String
+  quantity    Int
+  unitCost    Decimal @db.Decimal(15, 2)
+
+  ticket    ServiceTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sparePart SparePart     @relation(fields: [sparePartId], references: [id])
+}
+
+// ==================== SPARE PARTS ====================
+
+model SparePart {
+  id           String   @id @default(uuid())
+  companyId    String
+  partNumber   String
+  partName     String
+  category     String
+  supplier     String?
+  quantity     Int      @default(0)
+  costPrice    Decimal  @db.Decimal(15, 2)
+  sellingPrice Decimal  @db.Decimal(15, 2)
+  reorderLevel Int      @default(10)
+  barcode      String?  @unique
+  qrCode       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  company        Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  stockMovements SparePartMovement[]
+  ticketParts    ServiceTicketPart[]
+
+  @@unique([companyId, partNumber])
+  @@index([companyId, quantity])
+}
+
 enum StockMovementType {
   STOCK_IN
   STOCK_OUT
   ADJUSTMENT
   SERVICE_DEDUCTION
+}
+
+model SparePartMovement {
+  id          String            @id @default(uuid())
+  sparePartId String
+  type        StockMovementType
+  quantity    Int
+  reference   String?
+  notes       String?
+  performedBy String?
+  createdAt   DateTime          @default(now())
+
+  sparePart SparePart @relation(fields: [sparePartId], references: [id], onDelete: Cascade)
+}
+
+// ==================== SECURITY MODULE ====================
+
+model SecurityClient {
+  id            String  @id @default(uuid())
+  companyId     String
+  name          String
+  contactPerson String?
+  phone         String
+  email         String?
+  address       String?
+  kraPin        String?
+  isActive      Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company   Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contracts SecurityContract[]
+  sites     Site[]
+  invoices  Invoice[]
+}
+
+model SecurityContract {
+  id             String    @id @default(uuid())
+  companyId      String
+  clientId       String
+  customerId     String?
+  contractNumber String    @unique
+  startDate      DateTime
+  endDate        DateTime?
+  monthlyFee     Decimal   @db.Decimal(15, 2)
+  guardsCount    Int       @default(1)
+  terms          String?
+  status         String    @default("ACTIVE")
+  fileUrl        String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  company     Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  client      SecurityClient    @relation(fields: [clientId], references: [id])
+  customer    Customer?         @relation(fields: [customerId], references: [id])
+  deployments GuardDeployment[]
+  invoices    Invoice[]
+}
+
+model Guard {
+  id         String   @id @default(uuid())
+  companyId  String
+  employeeNo String
+  firstName  String
+  lastName   String
+  phone      String
+  idNumber   String?
+  licenseNo  String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  company     Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  deployments GuardDeployment[]
+  attendance  GuardAttendance[]
+
+  @@unique([companyId, employeeNo])
+}
+
+model Site {
+  id        String   @id @default(uuid())
+  companyId String
+  clientId  String
+  name      String
+  address   String
+  latitude  Decimal? @db.Decimal(10, 7)
+  longitude Decimal? @db.Decimal(10, 7)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  company     Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  client      SecurityClient    @relation(fields: [clientId], references: [id])
+  deployments GuardDeployment[]
+}
+
+model GuardDeployment {
+  id         String    @id @default(uuid())
+  contractId String
+  guardId    String
+  siteId     String
+  startDate  DateTime
+  endDate    DateTime?
+  shift      String?
+  isActive   Boolean   @default(true)
+
+  contract   SecurityContract  @relation(fields: [contractId], references: [id])
+  guard      Guard             @relation(fields: [guardId], references: [id])
+  site       Site              @relation(fields: [siteId], references: [id])
+  attendance GuardAttendance[]
+}
+
+model GuardAttendance {
+  id           String    @id @default(uuid())
+  deploymentId String
+  guardId      String
+  checkIn      DateTime
+  checkOut     DateTime?
+  notes        String?
+
+  deployment GuardDeployment @relation(fields: [deploymentId], references: [id])
+  guard      Guard           @relation(fields: [guardId], references: [id])
+}
+
+// ==================== AUTOMOBILE MODULE ====================
+
+model Vehicle {
+  id                 String      @id @default(uuid())
+  companyId          String
+  registrationNumber String
+  chassisNumber      String?
+  engineNumber       String?
+  make               String
+  model              String
+  year               Int
+  mileage            Int         @default(0)
+  purchasePrice      Decimal     @db.Decimal(15, 2)
+  sellingPrice       Decimal     @db.Decimal(15, 2)
+  stockStatus        StockStatus @default(IN_STOCK)
+  soldAt             DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  company        Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  serviceTickets ServiceTicket[]
+  bookings       CarHireBooking[]
+
+  @@unique([companyId, registrationNumber])
+}
+
+model CarHireBooking {
+  id                String        @id @default(uuid())
+  companyId         String
+  customerId        String?
+  vehicleId         String
+  bookingNumber     String
+  customerName      String? // Manual entry if not linked to CRM customer
+  phoneNumber       String?
+  idNumber          String?
+  driverAssigned    String?
+  pickupDate        DateTime
+  returnDate        DateTime?
+  destination       String?
+  dailyRate         Decimal       @db.Decimal(15, 2)
+  totalCharges      Decimal       @db.Decimal(15, 2)
+  depositPaid       Decimal       @default(0) @db.Decimal(15, 2)
+  balanceDue        Decimal       @db.Decimal(15, 2)
+  paymentStatus     PaymentStatus @default(PENDING)
+  vehicleStatus     VehicleStatus @default(AVAILABLE)
+  remarks           String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  location          String?
+  signedContractUrl String?
+  clientIdCardUrl   String?
+  clientPhotoUrl    String?
+
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id])
+  vehicle  Vehicle   @relation(fields: [vehicleId], references: [id])
+
+  @@unique([companyId, bookingNumber])
+  @@index([companyId, pickupDate])
 }
 
 enum PaymentStatus {
@@ -970,6 +756,8 @@ enum VehicleStatus {
   UNDER_MAINTENANCE
 }
 
+// ==================== ACCOUNTING ====================
+
 enum AccountType {
   ASSET
   LIABILITY
@@ -977,6 +765,60 @@ enum AccountType {
   REVENUE
   EXPENSE
 }
+
+model ChartOfAccount {
+  id        String      @id @default(uuid())
+  companyId String
+  code      String
+  name      String
+  type      AccountType
+  parentId  String?
+  isActive  Boolean     @default(true)
+  balance   Decimal     @default(0) @db.Decimal(15, 2)
+  createdAt DateTime    @default(now())
+
+  company      Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  parent       ChartOfAccount?  @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children     ChartOfAccount[] @relation("AccountHierarchy")
+  journalLines JournalLine[]
+
+  @@unique([companyId, code])
+}
+
+model JournalEntry {
+  id          String   @id @default(uuid())
+  companyId   String
+  entryNumber String
+  date        DateTime @default(now())
+  description String
+  reference   String?
+  isPosted    Boolean  @default(false)
+  sourceType  String?
+  sourceId    String?
+  createdBy   String?
+  createdAt   DateTime @default(now())
+
+  company Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  lines   JournalLine[]
+  invoice Invoice?
+
+  @@unique([companyId, entryNumber])
+  @@index([companyId, date])
+}
+
+model JournalLine {
+  id          String  @id @default(uuid())
+  journalId   String
+  accountId   String
+  debit       Decimal @default(0) @db.Decimal(15, 2)
+  credit      Decimal @default(0) @db.Decimal(15, 2)
+  description String?
+
+  journal JournalEntry   @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  account ChartOfAccount @relation(fields: [accountId], references: [id])
+}
+
+// ==================== INVOICING ====================
 
 enum InvoiceType {
   PROFORMA
@@ -998,6 +840,86 @@ enum InvoiceStatus {
   CANCELLED
 }
 
+model Invoice {
+  id               String        @id @default(uuid())
+  companyId        String
+  customerId       String?
+  securityClientId String?
+  contractId       String?
+  invoiceNumber    String
+  type             InvoiceType
+  status           InvoiceStatus @default(DRAFT)
+  issueDate        DateTime      @default(now())
+  dueDate          DateTime?
+  subtotal         Decimal       @db.Decimal(15, 2)
+  taxAmount        Decimal       @default(0) @db.Decimal(15, 2)
+  totalAmount      Decimal       @db.Decimal(15, 2)
+  amountPaid       Decimal       @default(0) @db.Decimal(15, 2)
+  notes            String?
+  pdfUrl           String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  company           Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer          Customer?          @relation(fields: [customerId], references: [id])
+  securityClient    SecurityClient?    @relation(fields: [securityClientId], references: [id])
+  contract          SecurityContract?  @relation(fields: [contractId], references: [id])
+  lines             InvoiceLine[]
+  payments          InvoicePayment[]
+  mpesaTransactions MpesaTransaction[]
+
+  journalEntryId String?       @unique
+  journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
+
+  @@unique([companyId, invoiceNumber])
+  @@index([companyId, status])
+}
+
+model InvoiceLine {
+  id          String  @id @default(uuid())
+  invoiceId   String
+  description String
+  quantity    Decimal @default(1) @db.Decimal(10, 2)
+  unitPrice   Decimal @db.Decimal(15, 2)
+  taxRate     Decimal @default(16) @db.Decimal(5, 2)
+  total       Decimal @db.Decimal(15, 2)
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model InvoicePayment {
+  id            String   @id @default(uuid())
+  invoiceId     String
+  amount        Decimal  @db.Decimal(15, 2)
+  paymentMethod String
+  reference     String?
+  paidAt        DateTime @default(now())
+  receiptUrl    String?
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+// ==================== MPESA ====================
+
+model MpesaTransaction {
+  id              String   @id @default(uuid())
+  companyId       String
+  transactionCode String   @unique
+  amount          Decimal  @db.Decimal(15, 2)
+  phoneNumber     String
+  customerId      String?
+  invoiceId       String?
+  status          String   @default("COMPLETED")
+  rawPayload      Json?
+  processedAt     DateTime @default(now())
+
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id])
+  invoice  Invoice?  @relation(fields: [invoiceId], references: [id])
+}
+
+// ==================== PETTY CASH ====================
+
 enum PettyCashStatus {
   PENDING
   APPROVED
@@ -1005,12 +927,154 @@ enum PettyCashStatus {
   DISBURSED
 }
 
+model PettyCashAccount {
+  id        String   @id @default(uuid())
+  companyId String
+  branchId  String
+  name      String
+  balance   Decimal  @default(0) @db.Decimal(15, 2)
+  limit     Decimal  @db.Decimal(15, 2)
+  createdAt DateTime @default(now())
+
+  company  Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branch   Branch             @relation(fields: [branchId], references: [id])
+  requests PettyCashRequest[]
+  expenses PettyCashExpense[]
+}
+
+model PettyCashRequest {
+  id          String          @id @default(uuid())
+  accountId   String
+  requestedBy String
+  amount      Decimal         @db.Decimal(15, 2)
+  purpose     String
+  status      PettyCashStatus @default(PENDING)
+  approvedBy  String?
+  approvedAt  DateTime?
+  createdAt   DateTime        @default(now())
+
+  account   PettyCashAccount @relation(fields: [accountId], references: [id])
+  requester User             @relation(fields: [requestedBy], references: [id])
+  approver  User?            @relation("PettyCashApprover", fields: [approvedBy], references: [id])
+}
+
+model PettyCashExpense {
+  id          String   @id @default(uuid())
+  accountId   String
+  amount      Decimal  @db.Decimal(15, 2)
+  description String
+  category    String?
+  receiptUrl  String?
+  recordedBy  String?
+  createdAt   DateTime @default(now())
+
+  account PettyCashAccount @relation(fields: [accountId], references: [id])
+}
+
+// ==================== NOTIFICATIONS & TEMPLATES ====================
+
 enum NotificationChannel {
   EMAIL
   SMS
   IN_APP
   WHATSAPP
 }
+
+model Notification {
+  id        String              @id @default(uuid())
+  userId    String
+  companyId String?
+  channel   NotificationChannel @default(IN_APP)
+  title     String
+  message   String
+  isRead    Boolean             @default(false)
+  metadata  Json?
+  createdAt DateTime            @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company? @relation(fields: [companyId], references: [id])
+}
+
+model DocumentTemplate {
+  id        String      @id @default(uuid())
+  companyId String
+  name      String
+  type      InvoiceType
+  content   String
+  isDefault Boolean     @default(false)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+// ==================== JOLU MACHINERIES DOCUMENTS ====================
+
+model SalesContract {
+  id              String   @id @default(uuid())
+  companyId       String
+  customerId      String
+  machineryUnitId String
+  contractNumber  String   @unique
+  salePrice       Decimal  @db.Decimal(15, 2)
+  terms           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  machineryUnit MachineryUnit @relation(fields: [machineryUnitId], references: [id])
+}
+
+model DeliveryNote {
+  id               String   @id @default(uuid())
+  companyId        String
+  customerId       String
+  machineryUnitId  String
+  deliveryNumber   String   @unique
+  deliveryDate     DateTime @default(now())
+  destination      String?
+  receivedBy       String?
+  driverName       String?
+  driverIdNumber   String?
+  driverPhone      String?
+  truckNumberPlate String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  machineryUnit MachineryUnit @relation(fields: [machineryUnitId], references: [id])
+}
+
+model GatePass {
+  id               String   @id @default(uuid())
+  companyId        String
+  customerId       String
+  machineryUnitId  String
+  gatePassNumber   String   @unique
+  date             DateTime @default(now())
+  timeOut          String?
+  destination      String?
+  driverName       String?
+  driverIdNumber   String?
+  driverPhone      String?
+  truckNumberPlate String?
+  equipmentDetails String?
+  quantity         Int      @default(1)
+  supplier         String?  @default("JOLU AGRICULTURAL MACHINERIES LTD")
+  comments         String?
+  securityOfficer  String?
+  staffPresent     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  machineryUnit MachineryUnit @relation(fields: [machineryUnitId], references: [id])
+}
+
+// ==================== IMPORT/EXPORT ====================
 
 enum JobType {
   IMPORT
@@ -1022,4 +1086,21 @@ enum JobStatus {
   PROCESSING
   COMPLETED
   FAILED
+}
+
+model ImportExportJob {
+  id          String    @id @default(uuid())
+  companyId   String
+  type        JobType
+  entity      String
+  format      String
+  fileUrl     String?
+  status      JobStatus @default(PENDING)
+  recordCount Int?
+  errorLog    String?
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }

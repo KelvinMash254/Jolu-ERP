@@ -72,6 +72,15 @@ export const accountingApi = {
   getIncomeStatement: (params?: Record<string, string>) => api.get('/accounting/reports/income-statement', { params }),
   getBalanceSheet: () => api.get('/accounting/reports/balance-sheet'),
   getReceivables: () => api.get('/accounting/receivables'),
+  getStatementClients: () => api.get('/accounting/statements/clients'),
+  getClientStatement: (clientId: string) => api.get(`/accounting/statements/${clientId}`),
+  
+  // PDF download links
+  downloadTrialBalancePdf: () => api.get('/accounting/reports/trial-balance/pdf'),
+  downloadIncomeStatementPdf: (params?: Record<string, string>) => api.get('/accounting/reports/income-statement/pdf', { params }),
+  downloadBalanceSheetPdf: () => api.get('/accounting/reports/balance-sheet/pdf'),
+  downloadReceivablesPdf: () => api.get('/accounting/receivables/pdf'),
+  downloadClientStatementPdf: (clientId: string) => api.get(`/accounting/statements/${clientId}/pdf`),
 };
 
 export const serviceApi = {
