@@ -20,9 +20,14 @@ router.post('/callback', async (req, res) => {
 router.use(authenticate, requireCompany);
 
 router.post('/stk-push', requirePermission('payments', 'create'), async (req: AuthRequest, res: Response) => {
-  const { phoneNumber, amount, invoiceId, accountReference } = req.body;
-  const result = await initiateSTKPush(req.companyId!, phoneNumber, amount, invoiceId, accountReference);
-  res.json({ success: true, data: result });
+  try {
+    const { phoneNumber, amount, invoiceId, accountReference } = req.body;
+    const result = await initiateSTKPush(req.companyId!, phoneNumber, amount, invoiceId, accountReference);
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    console.error("STK PUSH ERROR:", error);
+    res.status(500).json({ success: false, error: error.message || 'STK Push failed' });
+  }
 });
 
 router.get('/transactions', requirePermission('payments', 'read'), async (req: AuthRequest, res: Response) => {
