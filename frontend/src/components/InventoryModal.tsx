@@ -271,20 +271,43 @@ const renderSparePartForm = () => (
           <input className="input" type="number" required onChange={(e) => handleChange('year', Number(e.target.value))} />
         </div>
         <div>
-          <label className="label">Chassis Number</label>
-          <input className="input" onChange={(e) => handleChange('chassisNumber', e.target.value)} />
+          <label className="label">Category</label>
+          <select className="input" required onChange={(e) => handleChange('category', e.target.value)}>
+            <option value="Sedan">Sedan</option>
+            <option value="SUV">SUV</option>
+            <option value="Pickup">Pickup</option>
+            <option value="Van">Van</option>
+            <option value="Truck">Truck</option>
+            <option value="Luxury">Luxury</option>
+          </select>
         </div>
         <div>
-          <label className="label">Engine Number</label>
-          <input className="input" onChange={(e) => handleChange('engineNumber', e.target.value)} />
+          <label className="label">Transmission</label>
+          <select className="input" required onChange={(e) => handleChange('transmission', e.target.value)}>
+            <option value="Automatic">Automatic</option>
+            <option value="Manual">Manual</option>
+          </select>
         </div>
         <div>
-          <label className="label">Purchase Price</label>
-          <input className="input" type="number" required onChange={(e) => handleChange('purchasePrice', Number(e.target.value))} />
+          <label className="label">Fuel Type</label>
+          <select className="input" required onChange={(e) => handleChange('fuelType', e.target.value)}>
+            <option value="Petrol">Petrol</option>
+            <option value="Diesel">Diesel</option>
+            <option value="Electric">Electric</option>
+            <option value="Hybrid">Hybrid</option>
+          </select>
         </div>
         <div>
-          <label className="label">Selling Price</label>
-          <input className="input" type="number" required onChange={(e) => handleChange('sellingPrice', Number(e.target.value))} />
+          <label className="label">Daily Rate (KES)</label>
+          <input className="input" type="number" required onChange={(e) => handleChange('dailyRate', Number(e.target.value))} />
+        </div>
+        <div>
+          <label className="label">Weekly Rate (KES)</label>
+          <input className="input" type="number" required onChange={(e) => handleChange('weeklyRate', Number(e.target.value))} />
+        </div>
+        <div>
+          <label className="label">Monthly Rate (KES)</label>
+          <input className="input" type="number" required onChange={(e) => handleChange('monthlyRate', Number(e.target.value))} />
         </div>
       </div>
     </>
