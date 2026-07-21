@@ -3,7 +3,7 @@ import prisma from '../config/database';
 export async function getNextBookingNumber(companyId: string): Promise<string> {
   const count = await prisma.carHireBooking.count({ where: { companyId } });
   const year = new Date().getFullYear();
-  return `JBK-${year}-${String(count + 1).padStart(4, '0')}`;
+  return `JHR-${year}-${String(count + 1).padStart(4, '0')}`;
 }
 
 /**

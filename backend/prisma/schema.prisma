@@ -770,6 +770,8 @@ model CarHireBooking {
   destination       String?
   dailyRate         Decimal       @db.Decimal(15, 2)
   totalCharges      Decimal       @db.Decimal(15, 2)
+  commission        Decimal       @default(0) @db.Decimal(15, 2)
+  actualBalance     Decimal       @default(0) @db.Decimal(15, 2)
   depositPaid       Decimal       @default(0) @db.Decimal(15, 2)
   balanceDue        Decimal       @db.Decimal(15, 2)
   paymentStatus     PaymentStatus @default(PENDING)

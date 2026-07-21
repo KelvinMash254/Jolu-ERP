@@ -302,7 +302,9 @@ router.post('/', requirePermission('inventory', 'create'), async (req: AuthReque
     const pricing = calculateRentalPrice(vehicle, pDate, rDate, rentalType || 'SelfDrive', extras || {}, promoCode);
 
     const bookingNumber = await getNextBookingNumber(companyId);
-    const balanceDue = pricing.totalCharges - Number(depositPaid || 0);
+    const commission = Number(req.body.commission || 0);
+    const actualBalance = pricing.totalCharges - commission;
+    const balanceDue = actualBalance - Number(depositPaid || 0);
 
     // 4. Create everything in a transaction with Accounting & Invoice Integration
     const booking = await prisma.$transaction(async (tx) => {
@@ -327,6 +329,8 @@ router.post('/', requirePermission('inventory', 'create'), async (req: AuthReque
           status: 'Confirmed', // Create directly as Confirmed to lock availability
           dailyRate: vehicle.dailyRate,
           totalCharges: pricing.totalCharges,
+          commission,
+          actualBalance,
           depositPaid: depositPaid || 0,
           balanceDue,
           paymentStatus: Number(depositPaid) >= pricing.totalCharges ? 'PAID_IN_FULL' : (Number(depositPaid) > 0 ? 'PARTIAL' : 'PENDING'),

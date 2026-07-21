@@ -499,54 +499,66 @@ function BookingsTabList({ bookings, loading, onOpenWizard }: { bookings: any[];
         <table className="w-full text-sm text-left border-collapse">
           <thead className="bg-jolu-800 text-white text-xs uppercase tracking-wider">
             <tr>
-              <th className="px-6 py-4">Booking Number</th>
-              <th className="px-6 py-4">Customer</th>
-              <th className="px-6 py-4">Rental Vehicle</th>
-              <th className="px-6 py-4">Pickup Date/Time</th>
-              <th className="px-6 py-4">Return Date/Time</th>
-              <th className="px-6 py-4">Total Cost</th>
-              <th className="px-6 py-4">Payment</th>
-              <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4 text-center">Action</th>
+              <th className="px-4 py-3">S/N</th>
+              <th className="px-4 py-3">Booking ID</th>
+              <th className="px-4 py-3">Customer Name</th>
+              <th className="px-4 py-3">Vehicle Details</th>
+              <th className="px-4 py-3">Driver Assigned</th>
+              <th className="px-4 py-3">Date Taken</th>
+              <th className="px-4 py-3">Return Date</th>
+              <th className="px-4 py-3">Destination</th>
+              <th className="px-4 py-3 text-right">Daily Rate</th>
+              <th className="px-4 py-3 text-right">Total Charges</th>
+              <th className="px-4 py-3 text-right">Commission</th>
+              <th className="px-4 py-3 text-right">Actual Balance</th>
+              <th className="px-4 py-3">Payment Status</th>
+              <th className="px-4 py-3">Vehicle Status</th>
+              <th className="px-4 py-3 text-center">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y">
-            {filtered.map((b) => {
+          <tbody className="divide-y text-xs">
+            {filtered.map((b, idx) => {
               const isExpanded = expandedId === b.id;
               return (
                 <Fragment key={b.id}>
                   <tr className="hover:bg-gray-50 border-b">
-                    <td className="px-6 py-4 font-bold text-jolu-600">{b.bookingNumber}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3 font-semibold text-gray-500">{idx + 1}</td>
+                    <td className="px-4 py-3 font-bold text-jolu-600">{b.bookingNumber}</td>
+                    <td className="px-4 py-3">
                       <div className="font-semibold text-gray-900">{b.customerName || b.customer?.name}</div>
-                      <div className="text-[11px] text-gray-500">{b.phoneNumber || b.customer?.phone}</div>
+                      <div className="text-[10px] text-gray-500">{b.phoneNumber || b.customer?.phone} | ID: {b.idNumber || 'N/A'}</div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       <div className="font-semibold text-gray-900">{b.vehicle?.registrationNumber}</div>
-                      <div className="text-[11px] text-gray-500">{b.vehicle?.make} {b.vehicle?.model}</div>
+                      <div className="text-[10px] text-gray-500">{b.vehicle?.make} {b.vehicle?.model}</div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div>{new Date(b.pickupDate).toLocaleDateString()}</div>
+                    <td className="px-4 py-3 text-gray-700 font-semibold">{b.driver?.name || 'Self Drive'}</td>
+                    <td className="px-4 py-3">
+                      <div>{new Date(b.pickupDate).toLocaleDateString('en-GB')}</div>
                       <div className="text-[10px] text-gray-400 font-bold">{b.pickupTime}</div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div>{b.returnDate ? new Date(b.returnDate).toLocaleDateString() : '-'}</div>
+                    <td className="px-4 py-3">
+                      <div>{b.returnDate ? new Date(b.returnDate).toLocaleDateString('en-GB') : '-'}</div>
                       <div className="text-[10px] text-gray-400 font-bold">{b.returnTime}</div>
                     </td>
-                    <td className="px-6 py-4 font-bold font-mono">KES {Number(b.totalCharges || 0).toLocaleString()}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3 text-gray-600 font-semibold">{b.destination || b.location || 'N/A'}</td>
+                    <td className="px-4 py-3 text-right font-mono">KES {Number(b.dailyRate || 0).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right font-mono font-bold text-gray-900">KES {Number(b.totalCharges || 0).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right font-mono text-amber-600">KES {Number(b.commission || 0).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right font-mono font-extrabold text-jolu-700">KES {Number(b.actualBalance || b.totalCharges || 0).toLocaleString()}</td>
+                    <td className="px-4 py-3">
                       <StatusBadge status={b.paymentStatus} />
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                        b.status === 'Completed' ? 'bg-green-100 text-green-700' :
+                        b.status === 'Completed' ? 'bg-purple-100 text-purple-700' :
                         b.status === 'Active' || b.status === 'PickedUp' ? 'bg-blue-100 text-blue-700' :
                         b.status === 'Reserved' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'
                       }`}>
-                        {b.status}
+                        {b.status === 'Completed' ? 'Returned' : b.status === 'PickedUp' || b.status === 'Active' ? 'Out on Hire' : b.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-4 py-3 text-center">
                       <button
                         onClick={() => setExpandedId(isExpanded ? null : b.id)}
                         className="text-jolu-600 hover:underline font-bold text-xs"
@@ -1090,6 +1102,7 @@ function BookingWizardModal({ onClose, onSuccess }: { onClose: () => void; onSuc
   const [remarks, setRemarks] = useState('');
   const [promoCode, setPromoCode] = useState('');
   const [depositPaid, setDepositPaid] = useState(0);
+  const [commission, setCommission] = useState(0);
 
   // Extras
   const [extras, setExtras] = useState<Record<string, boolean>>({
@@ -1146,6 +1159,7 @@ function BookingWizardModal({ onClose, onSuccess }: { onClose: () => void; onSuc
         remarks,
         extras,
         promoCode,
+        commission,
         depositPaid
       });
       toast.success('Rental Booking Confirmed & Accounting Invoice Generated Successfully!');
@@ -1350,16 +1364,28 @@ function BookingWizardModal({ onClose, onSuccess }: { onClose: () => void; onSuc
                 {pricing.discountAmount > 0 && (
                   <p className="text-xs text-red-500 flex justify-between"><span>Discount Applied:</span> <span className="font-bold">- KES {Number(pricing.discountAmount).toLocaleString()}</span></p>
                 )}
-                <div className="border-t pt-3 flex justify-between font-extrabold text-gray-900 text-sm">
+                <div className="border-t pt-2 text-xs text-gray-500 flex justify-between font-bold">
                   <span>Gross Rental Charges:</span>
                   <span>KES {Number(pricing.totalCharges).toLocaleString()}</span>
                 </div>
+                <div className="text-xs text-amber-600 flex justify-between font-semibold">
+                  <span>Commission:</span>
+                  <span>- KES {Number(commission).toLocaleString()}</span>
+                </div>
+                <div className="border-t pt-3 flex justify-between font-extrabold text-jolu-700 text-sm">
+                  <span>Actual Balance Payout:</span>
+                  <span>KES {Number(pricing.totalCharges - commission).toLocaleString()}</span>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="label">Promo / Coupon Code</label>
                   <input type="text" className="input" placeholder="e.g. JOLU10" value={promoCode} onChange={e => setPromoCode(e.target.value)} />
+                </div>
+                <div>
+                  <label className="label">Commission (KES)</label>
+                  <input type="number" className="input" placeholder="e.g. 1500" value={commission} onChange={e => setCommission(Number(e.target.value))} />
                 </div>
                 <div>
                   <label className="label">Deposit Amount Paid (KES)</label>
