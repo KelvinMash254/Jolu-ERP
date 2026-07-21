@@ -140,6 +140,13 @@ console.log({
       ? 'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
       : 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest';
 
+  // Normalize phone number: strip non-numeric and prefix properly
+  let cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+  if (cleanPhone.startsWith('0')) {
+    cleanPhone = '254' + cleanPhone.slice(1);
+  } else if (cleanPhone.startsWith('7') || cleanPhone.startsWith('1')) {
+    cleanPhone = '254' + cleanPhone;
+  }
 
 console.log("====== STK REQUEST ======");
 console.log({
@@ -147,10 +154,10 @@ console.log({
   Password: password,
   Timestamp: timestamp,
   TransactionType: "CustomerPayBillOnline",
-  Amount: Math.round(amount),
-  PartyA: phoneNumber,
+  Amount: Math.round(Number(amount)),
+  PartyA: cleanPhone,
   PartyB: config.mpesa.shortcode,
-  PhoneNumber: phoneNumber,
+  PhoneNumber: cleanPhone,
   CallBackURL: config.mpesa.callbackUrl,
   AccountReference: accountReference || invoiceId || "JOLU-ERP",
   TransactionDesc: "Invoice Payment",
@@ -170,10 +177,10 @@ const response = await fetch(url, {
     Password: password,
     Timestamp: timestamp,
     TransactionType: "CustomerPayBillOnline",
-    Amount: Math.round(amount),
-    PartyA: phoneNumber,
+    Amount: Math.round(Number(amount)),
+    PartyA: cleanPhone,
     PartyB: config.mpesa.shortcode,
-    PhoneNumber: phoneNumber,
+    PhoneNumber: cleanPhone,
     CallBackURL: config.mpesa.callbackUrl,
     AccountReference: accountReference || invoiceId || "JOLU-ERP",
     TransactionDesc: "Invoice Payment",

@@ -140,6 +140,23 @@ export const carHireApi = {
   getAll: () => api.get('/car-hire'),
   create: (data: object) => api.post('/car-hire', data),
   update: (id: string, data: object) => api.patch(`/car-hire/${id}`, data),
+  getVehicles: () => api.get('/car-hire/vehicles'),
+  createVehicle: (data: object) => api.post('/car-hire/vehicles', data),
+  updateVehicle: (id: string, data: object) => api.patch(`/car-hire/vehicles/${id}`, data),
+  deleteVehicle: (id: string) => api.delete(`/car-hire/vehicles/${id}`),
+  getDrivers: () => api.get('/car-hire/drivers'),
+  createDriver: (data: object) => api.post('/car-hire/drivers', data),
+  updateDriver: (id: string, data: object) => api.patch(`/car-hire/drivers/${id}`, data),
+  deleteDriver: (id: string) => api.delete(`/car-hire/drivers/${id}`),
+  getAvailability: (pickupDate: string, returnDate: string, excludeBookingId?: string) =>
+    api.get(`/car-hire/availability?pickupDate=${pickupDate}&returnDate=${returnDate}${excludeBookingId ? `&excludeBookingId=${excludeBookingId}` : ''}`),
+  calculatePrice: (data: object) => api.post('/car-hire/calculate-price', data),
+  submitPickup: (id: string, data: object) => api.post(`/car-hire/${id}/pickup`, data),
+  submitReturn: (id: string, data: object) => api.post(`/car-hire/${id}/return`, data),
+  getMaintenance: () => api.get('/car-hire/maintenance'),
+  createMaintenance: (data: object) => api.post('/car-hire/maintenance', data),
+  getDashboard: () => api.get('/car-hire/dashboard'),
+  getReports: () => api.get('/car-hire/reports'),
 };
 
 export const machineryDocsApi = {

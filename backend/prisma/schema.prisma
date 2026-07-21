@@ -693,19 +693,59 @@ model Vehicle {
   make               String
   model              String
   year               Int
+  category           String      @default("Sedan") // SUV, Sedan, Pickup, Van, Truck, Bus, Luxury etc.
+  transmission       String      @default("Automatic") // Automatic, Manual
+  fuelType           String      @default("Petrol") // Petrol, Diesel, Hybrid, Electric
+  seatingCapacity    Int         @default(5)
+  color              String      @default("White")
   mileage            Int         @default(0)
-  purchasePrice      Decimal     @db.Decimal(15, 2)
-  sellingPrice       Decimal     @db.Decimal(15, 2)
-  stockStatus        StockStatus @default(IN_STOCK)
-  soldAt             DateTime?
+  dailyRate          Decimal     @default(0) @db.Decimal(15, 2)
+  weeklyRate         Decimal     @default(0) @db.Decimal(15, 2)
+  monthlyRate        Decimal     @default(0) @db.Decimal(15, 2)
+  hourlyRate         Decimal?    @db.Decimal(15, 2)
+  depositRequired    Decimal     @default(0) @db.Decimal(15, 2)
+  currentBranch      String      @default("Head Office")
+  insuranceExpiry    DateTime?
+  inspectionExpiry   DateTime?
+  serviceDueDate     DateTime?
+  roadLicenseExpiry  DateTime?
+  gpsTrackingId      String?
+  images             String?     // Comma-separated or JSON list of image URLs
+  documents          String?     // Comma-separated or JSON list of document URLs
+  notes              String?
+  status             String      @default("Available") // Available, Reserved, Booked, OnHire, Returned, Maintenance, Service, Accident, OutOfService, Retired
+  currentDriverId    String?
+
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
 
-  company        Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  serviceTickets ServiceTicket[]
-  bookings       CarHireBooking[]
+  company            Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  driver             Driver?          @relation("DriverVehicle", fields: [currentDriverId], references: [id], onDelete: SetNull)
+  serviceTickets     ServiceTicket[]
+  bookings           CarHireBooking[]
+  maintenances       VehicleMaintenance[]
 
   @@unique([companyId, registrationNumber])
+}
+
+model Driver {
+  id               String   @id @default(uuid())
+  companyId        String
+  name             String
+  licenseNumber    String
+  licenseClass     String
+  licenseExpiry    DateTime
+  medicalExpiry    DateTime?
+  phone            String
+  salary           Decimal? @db.Decimal(15, 2)
+  emergencyContact String?
+  photoUrl         String?
+  status           String   @default("Available") // Available, Assigned, OffDuty, Leave
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  vehicles         Vehicle[] @relation("DriverVehicle")
+  bookings         CarHireBooking[]
 }
 
 model CarHireBooking {
@@ -713,20 +753,28 @@ model CarHireBooking {
   companyId         String
   customerId        String?
   vehicleId         String
+  driverId          String?
   bookingNumber     String
   customerName      String? // Manual entry if not linked to CRM customer
   phoneNumber       String?
   idNumber          String?
-  driverAssigned    String?
+  pickupBranch      String        @default("Head Office")
+  dropoffBranch     String        @default("Head Office")
   pickupDate        DateTime
+  pickupTime        String        @default("09:00")
   returnDate        DateTime?
+  returnTime        String        @default("17:00")
+  rentalDuration    Int           @default(1) // in days or hours
+  rentalType        String        @default("SelfDrive") // SelfDrive, Chauffeur, Corporate, AirportTransfer, LongTermLease
+  status            String        @default("Pending") // Pending, Reserved, Confirmed, PickedUp, Active, Completed, Cancelled, NoShow
   destination       String?
   dailyRate         Decimal       @db.Decimal(15, 2)
   totalCharges      Decimal       @db.Decimal(15, 2)
+  commission        Decimal       @default(0) @db.Decimal(15, 2)
+  actualBalance     Decimal       @default(0) @db.Decimal(15, 2)
   depositPaid       Decimal       @default(0) @db.Decimal(15, 2)
   balanceDue        Decimal       @db.Decimal(15, 2)
   paymentStatus     PaymentStatus @default(PENDING)
-  vehicleStatus     VehicleStatus @default(AVAILABLE)
   remarks           String?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
@@ -734,26 +782,74 @@ model CarHireBooking {
   signedContractUrl String?
   clientIdCardUrl   String?
   clientPhotoUrl    String?
+  pricingDetails    Json?         // Stores details about pricing discounts, coupons, promos
+  optionalExtras    Json?         // Stores list of chosen extras and charges
 
-  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  customer Customer? @relation(fields: [customerId], references: [id])
-  vehicle  Vehicle   @relation(fields: [vehicleId], references: [id])
+  company           Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer          Customer?          @relation(fields: [customerId], references: [id])
+  vehicle           Vehicle            @relation(fields: [vehicleId], references: [id])
+  driver            Driver?            @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  inspections       VehicleInspection[]
+  returns           ReturnInspection[]
 
   @@unique([companyId, bookingNumber])
   @@index([companyId, pickupDate])
+}
+
+model VehicleInspection {
+  id                String   @id @default(uuid())
+  bookingId         String
+  fuelLevel         String   // e.g. "Full", "Quarter", "Half" etc.
+  mileageOut        Int
+  bodyCondition     String   // e.g. "Good", or damage details
+  tyreCondition     String
+  accessories       String?  // comma-separated list of items included
+  photos            String?  // comma-separated image URLs
+  driverSignature   String?  // base64 or URL
+  customerSignature String?  // base64 or URL
+  notes             String?
+  createdAt         DateTime @default(now())
+
+  booking           CarHireBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+model ReturnInspection {
+  id                String   @id @default(uuid())
+  bookingId         String
+  fuelReturned      String
+  mileageIn         Int
+  bodyCondition     String
+  tyreCondition     String
+  additionalCharges Decimal  @default(0) @db.Decimal(15, 2)
+  lateFees          Decimal  @default(0) @db.Decimal(15, 2)
+  cleaningCharges   Decimal  @default(0) @db.Decimal(15, 2)
+  depositRefundStatus String @default("Pending") // Pending, Refunded, Retained, Partial
+  photos            String?
+  signature         String?
+  notes             String?
+  createdAt         DateTime @default(now())
+
+  booking           CarHireBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+model VehicleMaintenance {
+  id               String   @id @default(uuid())
+  vehicleId        String
+  type             String   // ScheduledService, Tyres, Insurance, Accident, Repair, OilChange
+  cost             Decimal  @db.Decimal(15, 2)
+  date             DateTime
+  mileageAtService Int      @default(0)
+  status           String   @default("Completed") // Scheduled, InProgress, Completed, Cancelled
+  notes            String?
+  createdAt        DateTime @default(now())
+
+  vehicle          Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 }
 
 enum PaymentStatus {
   PENDING
   PARTIAL
   PAID_IN_FULL
-}
-
-enum VehicleStatus {
-  AVAILABLE
-  OUT_ON_HIRE
-  RETURNED
-  UNDER_MAINTENANCE
 }
 
 // ==================== ACCOUNTING ====================

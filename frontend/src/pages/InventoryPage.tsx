@@ -232,17 +232,17 @@ export default function InventoryPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
                   <tr className="text-left text-gray-500">
-                    <th className="px-6 py-3">Registration</th><th className="px-6 py-3">Make/Model</th><th className="px-6 py-3">Year</th><th className="px-6 py-3">Status</th><th className="px-6 py-3">Price</th>
+                    <th className="px-6 py-3">Registration</th><th className="px-6 py-3">Make/Model</th><th className="px-6 py-3">Year</th><th className="px-6 py-3">Status</th><th className="px-6 py-3">Daily Rate</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {vehicles.map((v: { id: string; registrationNumber: string; make: string; model: string; year: number; stockStatus: string; sellingPrice: number }) => (
+                  {vehicles.map((v: { id: string; registrationNumber: string; make: string; model: string; year: number; status: string; dailyRate: number }) => (
                     <tr key={v.id} className="border-t hover:bg-gray-50">
                       <td className="px-6 py-4 font-medium">{v.registrationNumber}</td>
                       <td className="px-6 py-4">{v.make} {v.model}</td>
                       <td className="px-6 py-4">{v.year}</td>
-                      <td className="px-6 py-4"><StatusBadge status={v.stockStatus} /></td>
-                      <td className="px-6 py-4">{formatCurrency(Number(v.sellingPrice))}</td>
+                      <td className="px-6 py-4"><StatusBadge status={v.status} /></td>
+                      <td className="px-6 py-4">{formatCurrency(Number(v.dailyRate || 0))}</td>
                     </tr>
                   ))}
                 </tbody>
