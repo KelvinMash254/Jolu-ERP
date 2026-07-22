@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import Layout from './components/layout/Layout';
 import LoginPage from './pages/LoginPage';
+import PublicPaymentPage from './pages/PublicPaymentPage';
 import DashboardPage from './pages/DashboardPage';
 import GroupDashboardPage from './pages/GroupDashboardPage';
 import CustomersPage from './pages/CustomersPage';
@@ -28,6 +29,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/pay/:id" element={<PublicPaymentPage />} />
         <Route
           path="/"
           element={
