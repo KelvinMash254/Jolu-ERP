@@ -25,6 +25,7 @@ import importExportRoutes from './routes/import-export.routes';
 import carHireRoutes from './routes/car-hire.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import machineryDocsRoutes from './routes/machinery-docs.routes';
+import publicRoutes from './routes/public.routes';
 
 const app = express();
 
@@ -50,6 +51,7 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'Jolu ERP API', version: '1.0.0' });
 });
 
+app.use('/api/public', publicRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/companies', companiesRoutes);

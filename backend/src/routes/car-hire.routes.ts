@@ -308,11 +308,36 @@ router.post('/', requirePermission('inventory', 'create'), async (req: AuthReque
 
     // 4. Create everything in a transaction with Accounting & Invoice Integration
     const booking = await prisma.$transaction(async (tx) => {
+      let resolvedCustomerId = customerId || null;
+
+      if (!resolvedCustomerId && customerName && phoneNumber) {
+        // Find or create customer
+        let customer = await tx.customer.findFirst({
+          where: {
+            companyId,
+            phone: phoneNumber
+          }
+        });
+
+        if (!customer) {
+          customer = await tx.customer.create({
+            data: {
+              companyId,
+              name: customerName,
+              phone: phoneNumber,
+              idNumber: idNumber || null,
+              isActive: true
+            }
+          });
+        }
+        resolvedCustomerId = customer.id;
+      }
+
       const createdBooking = await tx.carHireBooking.create({
         data: {
           companyId,
           bookingNumber,
-          customerId: customerId || null,
+          customerId: resolvedCustomerId,
           vehicleId,
           driverId: driverId || null,
           customerName,
@@ -359,7 +384,7 @@ router.post('/', requirePermission('inventory', 'create'), async (req: AuthReque
       // Generate invoice for accounting integration under AUTOMOBILE company code
       const invoiceNumber = await getNextInvoiceNumber(companyId, 'INVOICE');
       const subtotal = pricing.subtotal;
-      const taxAmount = Number(pricing.subtotal) * 0.16; // 16% VAT standard
+      const taxAmount = 0; // Tax is a second option, not autocalculated by default
       const totalAmount = subtotal + taxAmount + pricing.extrasTotal;
 
       const inv = await tx.invoice.create({
@@ -367,7 +392,7 @@ router.post('/', requirePermission('inventory', 'create'), async (req: AuthReque
           companyId,
           invoiceNumber,
           type: 'INVOICE',
-          customerId: customerId || null,
+          customerId: resolvedCustomerId,
           subtotal,
           taxAmount,
           totalAmount,
@@ -379,7 +404,7 @@ router.post('/', requirePermission('inventory', 'create'), async (req: AuthReque
                 description: `Vehicle Rental Base Fee (${pricing.durationDays} Days @ KES ${Number(pricing.baseRate).toLocaleString()})`,
                 quantity: pricing.durationDays,
                 unitPrice: pricing.baseRate,
-                taxRate: 16,
+                taxRate: 0,
                 total: pricing.subtotal
               },
               ...(pricing.extrasTotal > 0 ? [{

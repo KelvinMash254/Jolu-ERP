@@ -4,6 +4,8 @@ import { InvoiceType } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
 import axios from 'axios';
+import { postPaymentJournal } from './accounting.service';
+import { sendEmail } from './notification.service';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'invoices');
 
@@ -328,4 +330,97 @@ export async function getNextInvoiceNumber(companyId: string, type: InvoiceType)
   const count = await prisma.invoice.count({ where: { companyId, type } });
   const year = new Date().getFullYear();
   return `${prefixMap[type]}-${year}-${String(count + 1).padStart(6, '0')}`;
+}
+
+export async function processPaymentAndSendReceipt(
+  invoiceId: string,
+  amount: number,
+  paymentMethod: string,
+  reference: string
+) {
+  // 1. Get invoice
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    include: { customer: true, securityClient: true, company: true }
+  });
+  if (!invoice) throw new Error('Invoice not found');
+
+  // 2. Add payment record
+  const payment = await prisma.invoicePayment.create({
+    data: {
+      invoiceId: invoice.id,
+      amount,
+      paymentMethod,
+      reference,
+    }
+  });
+
+  // 3. Update invoice status
+  const newAmountPaid = Number(invoice.amountPaid) + amount;
+  const status = newAmountPaid >= Number(invoice.totalAmount) ? 'PAID' : 'PARTIALLY_PAID';
+
+  const updatedInvoice = await prisma.invoice.update({
+    where: { id: invoice.id },
+    data: { amountPaid: newAmountPaid, status },
+    include: { customer: true, securityClient: true, company: true }
+  });
+
+  // 4. Create accounting journal entries to reflect on statements
+  await postPaymentJournal(invoice.companyId, amount, paymentMethod, undefined, reference);
+
+  // 5. Generate PAID PDF invoice/receipt
+  const pdfUrl = await generateInvoicePDF(invoice.id);
+  const pdfPath = path.join(process.cwd(), pdfUrl.startsWith('/') ? pdfUrl.substring(1) : pdfUrl);
+
+  // 6. Send Receipt Email automatically
+  const clientEmail = updatedInvoice.customer?.email || updatedInvoice.securityClient?.email;
+  const clientName = updatedInvoice.customer?.name || updatedInvoice.securityClient?.name || 'Valued Client';
+
+  if (clientEmail) {
+    const subject = `Payment Receipt - ${updatedInvoice.invoiceNumber}`;
+    const text = `
+Dear ${clientName},
+
+Thank you for your payment.
+
+We have successfully processed your payment of KES ${amount.toLocaleString(undefined, { minimumFractionDigits: 2 })} via ${paymentMethod}.
+
+Transaction Details:
+* Invoice Number: ${updatedInvoice.invoiceNumber}
+* Payment Amount: KES ${amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+* Payment Method: ${paymentMethod}
+* Reference Code: ${reference}
+* Remaining Balance: KES ${(Number(updatedInvoice.totalAmount) - newAmountPaid).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+
+Please find the attached receipt PDF for your records.
+
+Kind regards,
+Jolu Group Invoicing Department
+    `;
+
+    const senderEmail = updatedInvoice.company.email || 'info@jolugroup.co.ke';
+    const senderName = updatedInvoice.company.name;
+    const fromHeader = `"${senderName}" <${senderEmail}>`;
+
+    await sendEmail(
+      clientEmail,
+      subject,
+      text,
+      undefined,
+      [{
+        filename: `Receipt-${updatedInvoice.invoiceNumber.replace(/\//g, '-')}.pdf`,
+        path: pdfPath,
+        contentType: 'application/pdf'
+      }],
+      fromHeader
+    );
+  }
+
+  // Fetch and return the latest invoice state with the updated pdfUrl
+  const finalInvoice = await prisma.invoice.findUnique({
+    where: { id: invoice.id },
+    include: { customer: true, securityClient: true, company: true }
+  });
+
+  return finalInvoice || updatedInvoice;
 }

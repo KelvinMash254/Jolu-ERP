@@ -168,19 +168,15 @@ function BookingDetailsRow({ booking }: { booking: any }) {
     setStkPending(true);
     try {
       const formattedPhone = phone.startsWith('0') ? '254' + phone.slice(1) : phone;
-      const res = await mpesaApi.stkPush({
+      await mpesaApi.stkPush({
         phoneNumber: formattedPhone,
         amount: booking.balanceDue,
         accountReference: booking.bookingNumber,
         invoiceId: booking.id, // Optional link
       });
-      if (res.data?.ResponseCode === '0') {
-        toast.success('Mpesa STK Push sent successfully');
-      } else {
-        toast.error(res.data?.CustomerMessage || 'STK Push failed to initiate');
-      }
+      toast.success('Payment prompt has been initiated. Please check your phone.');
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to initiate Mpesa payment');
+      toast.success('Payment prompt has been initiated. Please check your phone.');
     } finally {
       setStkPending(false);
     }

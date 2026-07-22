@@ -1,6 +1,6 @@
 import prisma from '../config/database';
 import { postPaymentJournal } from './accounting.service';
-import { generateInvoicePDF } from './invoice.service';
+import { generateInvoicePDF, processPaymentAndSendReceipt } from './invoice.service';
 import { sendEmail, sendSMS } from './notification.service';
 import { config } from '../config';
 
@@ -70,34 +70,12 @@ export async function processMpesaCallback(payload: MpesaCallbackPayload, compan
   });
 
   if (invoice) {
-    const newAmountPaid = Number(invoice.amountPaid) + amount;
-    const status = newAmountPaid >= Number(invoice.totalAmount) ? 'PAID' : 'PARTIALLY_PAID';
-
-    await prisma.invoicePayment.create({
-      data: {
-        invoiceId: invoice.id,
-        amount,
-        paymentMethod: 'MPESA',
-        reference: transactionCode,
-      },
-    });
-
-    await prisma.invoice.update({
-      where: { id: invoice.id },
-      data: { amountPaid: newAmountPaid, status },
-    });
-
-    await postPaymentJournal(companyId, amount, 'MPESA', undefined, transactionCode);
-
-    const pdfUrl = await generateInvoicePDF(invoice.id);
-
-    if (customer?.email) {
-      await sendEmail(
-        customer.email,
-        `Payment Receipt - ${invoice.invoiceNumber}`,
-        `Dear ${customer.name},\n\nWe have received your M-Pesa payment of KES ${amount.toLocaleString()}.\nTransaction Code: ${transactionCode}\n\nThank you for your business.\n\nJolu Group`
-      );
-    }
+    const updatedInvoice = await processPaymentAndSendReceipt(
+      invoice.id,
+      amount,
+      'MPESA',
+      transactionCode
+    );
 
     if (customer?.phone) {
       await sendSMS(
@@ -106,7 +84,7 @@ export async function processMpesaCallback(payload: MpesaCallbackPayload, compan
       );
     }
 
-    return { success: true, transaction, invoice, pdfUrl };
+    return { success: true, transaction, invoice: updatedInvoice, pdfUrl: updatedInvoice.pdfUrl };
   }
 
   return { success: true, transaction, message: 'Payment recorded but no matching invoice found' };
