@@ -5,6 +5,7 @@ import { getNextInvoiceNumber, generateInvoicePDF } from '../services/invoice.se
 import { sendEmail } from '../services/notification.service';
 import { createJournalEntry } from '../services/accounting.service';
 import path from "path";
+import { config } from '../config';
 const router = Router();
 router.use(authenticate, requireCompany);
 
@@ -175,6 +176,8 @@ router.post('/:id/send', requirePermission('invoices', 'update'), async (req: Au
       bodyClosing = `Thank you for your continued trust and business.`;
     }
 
+    const payUrl = `${config.frontendUrl}/pay/${invoice.id}`;
+
     const text = `
 Dear ${clientName},
 
@@ -188,6 +191,8 @@ ${invoiceTypeStr} Summary:
 * ${invoiceTypeStr} Date: ${new Date(invoice.issueDate).toLocaleDateString('en-GB')}
 * Amount Due: KES ${Number(invoice.totalAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
 * Due Date: ${dueDate}
+
+💳 Click here to pay this invoice online via M-Pesa: ${payUrl}
 
 Kindly review the attached document. Should you have any questions or require any clarification, please do not hesitate to contact us.
 

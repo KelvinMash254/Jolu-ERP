@@ -19,7 +19,7 @@ export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }:
   const [contractId, setContractId] = useState(initialData?.contractId || '');
   const [dueDate, setDueDate] = useState(initialData?.dueDate || '');
   const [notes, setNotes] = useState(initialData?.notes || '');
-  const [lines, setLines] = useState(initialData?.lines || [{ description: '', quantity: 1, unitPrice: 0, taxRate: 16, total: 0 }]);
+  const [lines, setLines] = useState(initialData?.lines || [{ description: '', quantity: 1, unitPrice: 0, taxRate: 0, total: 0 }]);
 
   useEffect(() => {
     if (initialData) {
@@ -27,7 +27,7 @@ export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }:
       setCustomerId(initialData.customerId || '');
       setSecurityClientId(initialData.securityClientId || '');
       setContractId(initialData.contractId || '');
-      setLines(initialData.lines || [{ description: '', quantity: 1, unitPrice: 0, taxRate: 16, total: 0 }]);
+      setLines(initialData.lines || [{ description: '', quantity: 1, unitPrice: 0, taxRate: 0, total: 0 }]);
     }
   }, [initialData]);
 
@@ -47,7 +47,7 @@ export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }:
   const securityClients = securityClientsData?.data?.data || [];
 
   const addLine = () => {
-    setLines([...lines, { description: '', quantity: 1, unitPrice: 0, taxRate: 16, total: 0 }]);
+    setLines([...lines, { description: '', quantity: 1, unitPrice: 0, taxRate: 0, total: 0 }]);
   };
 
   const removeLine = (index: number) => {
