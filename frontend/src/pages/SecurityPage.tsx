@@ -52,9 +52,13 @@ export default function SecurityPage() {
   const createInvoiceMutation = useMutation({
     mutationFn: (data: any) => invoiceApi.create(data),
     onSuccess: () => { 
-      toast.success('Invoice created');
+      toast.success('Invoice created successfully');
       setSelectedContract(null);
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
     },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.error || 'Failed to create invoice');
+    }
   });
 
   const isLoading = lc || lco || lg || ls;

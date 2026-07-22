@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { invoiceApi } from '../services/api';
+import { invoiceApi, importExportApi } from '../services/api';
 import { PageHeader, LoadingSpinner, StatusBadge, formatCurrency } from '../components/ui/Shared';
 import InvoiceModal from '../components/InvoiceModal';
 import InvoicePreviewModal from '../components/InvoicePreviewModal';
 import type { Invoice } from '../types';
+import toast from 'react-hot-toast';
 
 export default function InvoicesPage() {
   const queryClient = useQueryClient();
@@ -15,6 +16,20 @@ export default function InvoicesPage() {
     queryKey: ['invoices'],
     queryFn: () => invoiceApi.getAll(),
   });
+
+  const handleExport = async (format: 'csv' | 'xlsx') => {
+    try {
+      const res = await importExportApi.export('invoices', format);
+      if (res.data?.success && res.data?.data) {
+        window.open(res.data.data, '_blank');
+        toast.success(`Invoices exported as ${format.toUpperCase()}`);
+      } else {
+        toast.error('Export failed');
+      }
+    } catch (e) {
+      toast.error('Export failed');
+    }
+  };
 
   const createMutation = useMutation({
     mutationFn: (data: any) => invoiceApi.create(data),
@@ -32,12 +47,26 @@ export default function InvoicesPage() {
         title="Invoices" 
         subtitle="Proforma, tax invoices, receipts, and quotations" 
         actions={
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="btn-primary"
-          >
-            Create Invoice
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleExport('csv')}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+            >
+              Export CSV
+            </button>
+            <button
+              onClick={() => handleExport('xlsx')}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+            >
+              Export XLSX
+            </button>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="btn-primary"
+            >
+              Create Invoice
+            </button>
+          </div>
         } 
       />
 

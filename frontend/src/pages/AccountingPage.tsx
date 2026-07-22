@@ -46,6 +46,64 @@ export default function AccountingPage() {
 
   const isLoading = la || lj || lt || li || lb || lr || lc || (ls && !!selectedClientId);
 
+  const downloadCSV = (headers: string[], rows: any[][], filename: string) => {
+    const content = [
+      headers.join(','),
+      ...rows.map(row => row.map(val => {
+        const cleanVal = String(val === null || val === undefined ? '' : val).replace(/"/g, '""');
+        return cleanVal.includes(',') || cleanVal.includes('\n') || cleanVal.includes('"') ? `"${cleanVal}"` : cleanVal;
+      }).join(','))
+    ].join('\r\n');
+
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${filename}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportTBCSV = () => {
+    const headers = ['Account Code', 'Account Name', 'Debit (KES)', 'Credit (KES)'];
+    const rows = (trialBalance?.data?.data || []).map((a: any) => [
+      a.code,
+      a.name,
+      a.debit || 0,
+      a.credit || 0
+    ]);
+    downloadCSV(headers, rows, 'Trial_Balance');
+  };
+
+  const handleExportIncomeCSV = () => {
+    const headers = ['Type', 'Category/Name', 'Amount (KES)'];
+    const rows: any[] = [];
+    const revenue = income?.data?.data?.revenue || [];
+    const expenses = income?.data?.data?.expenses || [];
+
+    revenue.forEach((r: any) => rows.push(['Revenue', r.name, r.amount]));
+    rows.push(['Revenue Total', 'Total Revenue', income?.data?.data?.totalRevenue || 0]);
+
+    expenses.forEach((e: any) => rows.push(['Expense', e.name, e.amount]));
+    rows.push(['Net Income', 'Net Income', income?.data?.data?.netIncome || 0]);
+
+    downloadCSV(headers, rows, 'Income_Statement');
+  };
+
+  const handleExportBSCSV = () => {
+    const headers = ['Section', 'Account/Category Name', 'Balance (KES)'];
+    const rows: any[] = [];
+    ['assets', 'liabilities', 'equity'].forEach(section => {
+      const list = balanceSheet?.data?.data?.[section] || [];
+      list.forEach((item: any) => {
+        rows.push([section.toUpperCase(), item.name, item.balance]);
+      });
+    });
+    downloadCSV(headers, rows, 'Balance_Sheet');
+  };
+
   // PDF Download Trigger Functions
   const triggerPdfDownload = async (apiCall: () => Promise<any>, toastName: string) => {
     setDownloadingPdf(true);
@@ -109,7 +167,13 @@ export default function AccountingPage() {
 
             {tab === 'trial-balance' && (
               <div className="space-y-4">
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={handleExportTBCSV}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 transition-colors flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4" /> Export CSV
+                  </button>
                   <button
                     onClick={handleDownloadTB}
                     disabled={downloadingPdf}
@@ -134,7 +198,13 @@ export default function AccountingPage() {
 
             {tab === 'income' && (
               <div className="space-y-4">
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={handleExportIncomeCSV}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 transition-colors flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4" /> Export CSV
+                  </button>
                   <button
                     onClick={handleDownloadIncome}
                     disabled={downloadingPdf}
@@ -165,7 +235,13 @@ export default function AccountingPage() {
 
             {tab === 'balance-sheet' && (
               <div className="space-y-4">
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={handleExportBSCSV}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 transition-colors flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4" /> Export CSV
+                  </button>
                   <button
                     onClick={handleDownloadBS}
                     disabled={downloadingPdf}

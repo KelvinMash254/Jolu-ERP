@@ -241,9 +241,9 @@ export default function PublicPaymentPage() {
                   <button
                     onClick={handleMpesaPrompt}
                     disabled={stkPending}
-                    className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg text-sm shadow-sm transition-colors flex justify-center items-center gap-1.5 border-none disabled:opacity-50"
+                    className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-black rounded-lg text-sm shadow-md transition-all hover:scale-[1.01] flex justify-center items-center gap-1.5 border-none disabled:opacity-50 uppercase tracking-wider"
                   >
-                    {stkPending ? 'Initiating prompt...' : 'Pay with M-Pesa'}
+                    {stkPending ? 'Initiating prompt...' : 'PAY NOW (M-Pesa)'}
                   </button>
                 </div>
 
@@ -257,9 +257,9 @@ export default function PublicPaymentPage() {
                   <button
                     onClick={handleSimulatePayment}
                     disabled={simulating}
-                    className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg text-sm shadow-sm transition-colors flex justify-center items-center gap-1.5 border-none disabled:opacity-50"
+                    className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-black rounded-lg text-sm shadow-md transition-all hover:scale-[1.01] flex justify-center items-center gap-1.5 border-none disabled:opacity-50 uppercase tracking-wider"
                   >
-                    {simulating ? 'Processing Simulated Payment...' : 'Simulate & Pay Instantly'}
+                    {simulating ? 'Processing Simulated Payment...' : 'PAY NOW (Instant Simulation)'}
                   </button>
                 </div>
 
