@@ -1,8 +1,31 @@
 import { useState, useEffect } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { crmApi, securityApi } from '../services/api';
+import { crmApi, securityApi, inventoryApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
+
+const TRACTOR_CATALOG = [
+  { name: "NEW ZOOMLION TRACTOR MODEL RK 504 -A", price: 2500000 },
+  { name: "NEW ZOOMLION TRACTOR MODEL RK 704 -A", price: 3200000 },
+  { name: "NEW ZOOMLION TRACTOR MODEL RC 904 -A", price: 4300000 },
+  { name: "NEW ZOOMLION TRACTOR MODEL RN 904 (PRO)", price: 4800000 },
+  { name: "NEW ZOOMLION TRACTOR MODEL RC 1104 -A (OLD MODEL)", price: 4500000 },
+  { name: "NEW ZOOMLION TRACTOR MODEL RC 1104 -A (NEW MODEL)", price: 4800000 },
+  { name: "NEW ZOOMLION TRACTOR MODEL RS 1604 -A", price: 8800000 },
+  { name: "NEW ZOOMLION RICE HARVESTER ZL 105", price: 6500000 },
+];
+
+const IMPLEMENT_CATALOG = [
+  { name: "2 Disc Plough Heavy Duty", price: 300000 },
+  { name: "3 Disc Heavy Duty", price: 600000 },
+  { name: "3 Disc Mounted Disc Plough", price: 600000 },
+  { name: "Advanced 5 Disc Plough", price: 950000 },
+  { name: "Hydraulic Pressure Offset Disc Harrow", price: 550000 },
+  { name: "Disc Harrows", price: 400000 },
+  { name: "Heavy Duty Water Bowsers", price: 850000 },
+  { name: "Trailer", price: 650000 },
+  { name: "Tipping & Non-Tipping Trailers", price: 650000 },
+];
 
 interface InvoiceModalProps {
   isOpen: boolean;
@@ -22,14 +45,20 @@ export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }:
   const [lines, setLines] = useState(initialData?.lines || [{ description: '', quantity: 1, unitPrice: 0, taxRate: 0, total: 0 }]);
 
   useEffect(() => {
-    if (initialData) {
-      setType(initialData.type || 'INVOICE');
-      setCustomerId(initialData.customerId || '');
-      setSecurityClientId(initialData.securityClientId || '');
-      setContractId(initialData.contractId || '');
-      setLines(initialData.lines || [{ description: '', quantity: 1, unitPrice: 0, taxRate: 0, total: 0 }]);
+    if (isOpen) {
+      if (initialData) {
+        setType(initialData.type || 'INVOICE');
+        setCustomerId(initialData.customerId || '');
+        setSecurityClientId(initialData.securityClientId || '');
+        setContractId(initialData.contractId || '');
+        setLines(initialData.lines || [{ description: '', quantity: 1, unitPrice: 0, taxRate: 0, total: 0 }]);
+      } else if (currentCompany?.code === 'SECURITY') {
+        setLines([{ description: 'Security Services', quantity: 1, unitPrice: 15000, taxRate: 16, total: 15000 }]);
+      } else {
+        setLines([{ description: '', quantity: 1, unitPrice: 0, taxRate: 0, total: 0 }]);
+      }
     }
-  }, [initialData]);
+  }, [isOpen, initialData, currentCompany]);
 
   const { data: customersData } = useQuery({
     queryKey: ['customers'],
@@ -43,8 +72,22 @@ export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }:
     enabled: isOpen,
   });
 
+  const { data: sparePartsData } = useQuery({
+    queryKey: ['spare-parts-invoice'],
+    queryFn: () => inventoryApi.getSpareParts(),
+    enabled: isOpen && currentCompany?.code === 'MACHINERIES',
+  });
+
+  const { data: machineryData } = useQuery({
+    queryKey: ['machinery-units-invoice'],
+    queryFn: () => inventoryApi.getMachinery(),
+    enabled: isOpen && currentCompany?.code === 'MACHINERIES',
+  });
+
   const customers = customersData?.data?.data || [];
   const securityClients = securityClientsData?.data?.data || [];
+  const spareParts = sparePartsData?.data?.data || [];
+  const machineryUnits = (machineryData?.data?.data || []).filter((u: any) => u.stockStatus === 'IN_STOCK');
 
   const addLine = () => {
     setLines([...lines, { description: '', quantity: 1, unitPrice: 0, taxRate: 0, total: 0 }]);
@@ -202,15 +245,74 @@ export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }:
                 <tbody className="divide-y">
                   {lines.map((line: any, index: number) => (
                     <tr key={index}>
-                      <td className="py-3 pr-4">
+                      <td className="py-3 pr-4 space-y-2">
                         <input 
                           type="text" 
                           value={line.description} 
                           onChange={(e) => updateLine(index, 'description', e.target.value)}
                           placeholder="Item description"
-                          className="w-full border-none focus:ring-0 p-0 text-sm"
+                          className="w-full border-none focus:ring-0 p-0 text-sm font-semibold"
                           required
                         />
+                        {currentCompany?.code === 'MACHINERIES' && (
+                          <div className="pt-1">
+                            <select
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (!val) return;
+                                const [typePrefix, keyStr] = val.split('::');
+                                const key = Number(keyStr);
+                                if (typePrefix === 'tractor') {
+                                  const item = TRACTOR_CATALOG[key];
+                                  updateLine(index, 'description', item.name);
+                                  updateLine(index, 'unitPrice', item.price);
+                                } else if (typePrefix === 'implement') {
+                                  const item = IMPLEMENT_CATALOG[key];
+                                  updateLine(index, 'description', item.name);
+                                  updateLine(index, 'unitPrice', item.price);
+                                } else if (typePrefix === 'machinery') {
+                                  const item = machineryUnits[key];
+                                  const desc = `${item.brand} ${item.model} ${item.productName} (S/N: ${item.serialNumber || item.chassisNumber || item.id})`;
+                                  updateLine(index, 'description', desc);
+                                  updateLine(index, 'unitPrice', Number(item.sellingPrice));
+                                } else if (typePrefix === 'sparepart') {
+                                  const item = spareParts[key];
+                                  const desc = `Spare Part: ${item.partName} (${item.partNumber})`;
+                                  updateLine(index, 'description', desc);
+                                  updateLine(index, 'unitPrice', Number(item.sellingPrice));
+                                }
+                                e.target.value = '';
+                              }}
+                              className="rounded border-gray-300 text-[11px] py-1 px-2 text-gray-600 focus:border-jolu-500 focus:ring-jolu-500 w-full max-w-xs"
+                            >
+                              <option value="">-- Choose Product / Spare Part --</option>
+                              <optgroup label="Tractors (Flyer Catalog)">
+                                {TRACTOR_CATALOG.map((item, i) => (
+                                  <option key={i} value={`tractor::${i}`}>{item.name} - KES {item.price.toLocaleString()}</option>
+                                ))}
+                              </optgroup>
+                              <optgroup label="Implements (Flyer Catalog)">
+                                {IMPLEMENT_CATALOG.map((item, i) => (
+                                  <option key={i} value={`implement::${i}`}>{item.name} - KES {item.price.toLocaleString()}</option>
+                                ))}
+                              </optgroup>
+                              {machineryUnits.length > 0 && (
+                                <optgroup label="Machinery Inventory (In Stock)">
+                                  {machineryUnits.map((item: any, i: number) => (
+                                    <option key={item.id} value={`machinery::${i}`}>{item.brand} {item.model} {item.productName} (S/N: {item.serialNumber || 'N/A'}) - KES {Number(item.sellingPrice).toLocaleString()}</option>
+                                  ))}
+                                </optgroup>
+                              )}
+                              {spareParts.length > 0 && (
+                                <optgroup label="Spare Parts Inventory">
+                                  {spareParts.map((item: any, i: number) => (
+                                    <option key={item.id} value={`sparepart::${i}`}>{item.partName} ({item.partNumber}) - KES {Number(item.sellingPrice).toLocaleString()}</option>
+                                  ))}
+                                </optgroup>
+                              )}
+                            </select>
+                          </div>
+                        )}
                       </td>
                       <td className="py-3 pr-4">
                         <input 

@@ -150,8 +150,11 @@ async function main() {
   }
 
   const superAdminRole = await prisma.role.findUnique({ where: { name: 'SUPER_ADMIN' } });
+  const companyAdminRole = await prisma.role.findUnique({ where: { name: 'COMPANY_ADMIN' } });
+  const salesRepRole = await prisma.role.findUnique({ where: { name: 'SALES_REPRESENTATIVE' } });
   const passwordHash = await bcrypt.hash('Admin@123', 12);
 
+  // Default system admin
   const admin = await prisma.user.upsert({
     where: { email: 'admin@jolugroup.co.ke' },
     create: {
@@ -168,93 +171,116 @@ async function main() {
     update: {},
   });
 
-  const salesRole = await prisma.role.findUnique({ where: { name: 'SALES_MANAGER' } });
-  // CRM Users: Walter (Sales Manager), Dennis (Rongo - Sales Rep), George (Awasi - Sales Rep)
-  const salesRepRole = await prisma.role.findUnique({ where: { name: 'SALES_REPRESENTATIVE' } });
-  
-  const walter = await prisma.user.upsert({
-    where: { email: 'walter@jolugroup.co.ke' },
-    create: {
-      email: 'walter@jolugroup.co.ke',
-      passwordHash,
-      firstName: 'Walter',
-      lastName: 'Head of Business',
-      phone: '+254700000004',
-      roleId: salesRole!.id,
-      companies: {
-        create: createdCompanies.map((c) => ({ companyId: c.id, isPrimary: c.code === CompanyCode.MACHINERIES })),
-      },
-    },
-    update: {},
-  });
-
-  const dennis = await prisma.user.upsert({
-    where: { email: 'dennis@jolugroup.co.ke' },
-    create: {
-      email: 'dennis@jolugroup.co.ke',
-      passwordHash,
-      firstName: 'Dennis',
-      lastName: 'Rongo',
-      phone: '+254700000005',
-      roleId: salesRepRole!.id,
-      managerId: walter.id,
-      companies: {
-        create: createdCompanies.map((c) => ({ companyId: c.id, isPrimary: c.code === CompanyCode.MACHINERIES })),
-      },
-    },
-    update: {
-      managerId: walter.id,
-    },
-  });
-
-  const george = await prisma.user.upsert({
-    where: { email: 'george@jolugroup.co.ke' },
-    create: {
-      email: 'george@jolugroup.co.ke',
-      passwordHash,
-      firstName: 'George',
-      lastName: 'Awasi',
-      phone: '+254700000006',
-      roleId: salesRepRole!.id,
-      managerId: walter.id,
-      companies: {
-        create: createdCompanies.map((c) => ({ companyId: c.id, isPrimary: c.code === CompanyCode.MACHINERIES })),
-      },
-    },
-    update: {
-      managerId: walter.id,
-    },
-  });
-
-  // salesRole is already defined
-  await prisma.user.upsert({
-    where: { email: 'sales@jolugroup.co.ke' },
-    create: {
-      email: 'sales@jolugroup.co.ke',
-      passwordHash,
+  // User definitions to seed as requested
+  const usersToSeed = [
+    {
+      email: 'john@jolugroup.com',
       firstName: 'John',
-      lastName: 'Sales',
-      phone: '+254700000002',
-      roleId: salesRole!.id,
-      companies: { create: [{ companyId: createdCompanies[0].id, isPrimary: true }] },
+      lastName: 'CEO',
+      roleId: superAdminRole!.id,
+      companyCodes: [CompanyCode.MACHINERIES, CompanyCode.SECURITY, CompanyCode.AUTOMOBILE],
+      isPrimaryCode: CompanyCode.MACHINERIES
     },
-    update: {},
-  });
-
-  const financeRole = await prisma.role.findUnique({ where: { name: 'FINANCE_TEAM' } });
-  await prisma.user.upsert({
-    where: { email: 'finance@jolugroup.co.ke' },
-    create: {
-      email: 'finance@jolugroup.co.ke',
-      passwordHash,
-      firstName: 'Jane',
+    {
+      email: 'kelvin@jolugroup.com',
+      firstName: 'Kelvin',
       lastName: 'Finance',
-      phone: '+254700000003',
-      roleId: financeRole!.id,
-      companies: { create: createdCompanies.map((c) => ({ companyId: c.id, isPrimary: c.code === CompanyCode.MACHINERIES })) },
+      roleId: superAdminRole!.id,
+      companyCodes: [CompanyCode.MACHINERIES, CompanyCode.SECURITY, CompanyCode.AUTOMOBILE],
+      isPrimaryCode: CompanyCode.MACHINERIES
     },
-    update: {},
-  });
+    {
+      email: 'lucy@jolugroup.com',
+      firstName: 'Lucy',
+      lastName: 'MD',
+      roleId: superAdminRole!.id,
+      companyCodes: [CompanyCode.MACHINERIES, CompanyCode.SECURITY, CompanyCode.AUTOMOBILE],
+      isPrimaryCode: CompanyCode.MACHINERIES
+    },
+    {
+      email: 'walter@jolugroup.com',
+      firstName: 'Walter',
+      lastName: 'Machineries',
+      roleId: companyAdminRole!.id,
+      companyCodes: [CompanyCode.MACHINERIES],
+      isPrimaryCode: CompanyCode.MACHINERIES
+    },
+    {
+      email: 'dennis@jolugroup.com',
+      firstName: 'Dennis',
+      lastName: 'Machineries',
+      roleId: salesRepRole!.id,
+      companyCodes: [CompanyCode.MACHINERIES],
+      isPrimaryCode: CompanyCode.MACHINERIES
+    },
+    {
+      email: 'musyoka@jolugroup.com',
+      firstName: 'Musyoka',
+      lastName: 'Machineries',
+      roleId: salesRepRole!.id,
+      companyCodes: [CompanyCode.MACHINERIES],
+      isPrimaryCode: CompanyCode.MACHINERIES
+    },
+    {
+      email: 'mercy@jolugroup.com',
+      firstName: 'Mercy',
+      lastName: 'Machineries',
+      roleId: salesRepRole!.id,
+      companyCodes: [CompanyCode.MACHINERIES],
+      isPrimaryCode: CompanyCode.MACHINERIES
+    },
+    {
+      email: 'cate@jolugroup.com',
+      firstName: 'Cate',
+      lastName: 'Security',
+      roleId: companyAdminRole!.id,
+      companyCodes: [CompanyCode.SECURITY],
+      isPrimaryCode: CompanyCode.SECURITY
+    },
+    {
+      email: 'malika@jolugroup.com',
+      firstName: 'Malika',
+      lastName: 'Security',
+      roleId: companyAdminRole!.id,
+      companyCodes: [CompanyCode.SECURITY],
+      isPrimaryCode: CompanyCode.SECURITY
+    },
+    {
+      email: 'diana@jolugroup.com',
+      firstName: 'Diana',
+      lastName: 'Automobile',
+      roleId: companyAdminRole!.id,
+      companyCodes: [CompanyCode.AUTOMOBILE],
+      isPrimaryCode: CompanyCode.AUTOMOBILE
+    }
+  ];
+
+  for (const u of usersToSeed) {
+    const existing = await prisma.user.findUnique({ where: { email: u.email } });
+    if (existing) {
+      await prisma.userCompany.deleteMany({ where: { userId: existing.id } });
+      await prisma.user.delete({ where: { id: existing.id } });
+    }
+
+    await prisma.user.create({
+      data: {
+        email: u.email,
+        passwordHash,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        phone: '+254700000000',
+        roleId: u.roleId,
+        companies: {
+          create: createdCompanies
+            .filter(c => u.companyCodes.includes(c.code))
+            .map(c => ({
+              companyId: c.id,
+              isPrimary: c.code === u.isPrimaryCode
+            }))
+        }
+      }
+    });
+  }
 
   // Sample data for Machineries
   const machineriesCo = createdCompanies.find((c) => c.code === CompanyCode.MACHINERIES)!;

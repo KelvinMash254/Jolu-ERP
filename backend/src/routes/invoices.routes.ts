@@ -64,6 +64,35 @@ router.post('/', requirePermission('invoices', 'create'), async (req: AuthReques
       include: { lines: true, customer: true },
     });
 
+    const company = await tx.company.findUnique({ where: { id: req.companyId! } });
+    if (company && company.code === 'MACHINERIES' && type === 'INVOICE') {
+      for (const line of lines) {
+        const match = line.description.match(/S\/N:\s*([^\s\)]+)/i);
+        if (match) {
+          const serialNumber = match[1].trim();
+          const unit = await tx.machineryUnit.findFirst({
+            where: { companyId: company.id, serialNumber, stockStatus: 'IN_STOCK' }
+          });
+          if (unit) {
+            await tx.machineryUnit.update({
+              where: { id: unit.id },
+              data: {
+                stockStatus: 'SOLD',
+                soldAt: new Date(),
+              }
+            });
+            await tx.machineryLifecycleEvent.create({
+              data: {
+                machineryUnitId: unit.id,
+                eventType: 'SOLD',
+                description: `Unit sold via Invoice No: ${invoiceNumber}`,
+              }
+            });
+          }
+        }
+      }
+    }
+
     if (type === 'INVOICE') {
       const journalLines = [
         { accountCode: '1100', debit: Number(inv.totalAmount), description: `Invoice ${inv.invoiceNumber}` },
