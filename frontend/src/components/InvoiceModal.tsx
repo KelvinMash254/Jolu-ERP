@@ -1,8 +1,53 @@
 import { useState, useEffect } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { crmApi, securityApi } from '../services/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { crmApi, securityApi, inventoryApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
+import toast from 'react-hot-toast';
+import { KENYA_COUNTIES } from '../constants/counties';
+
+const TRACTOR_CATALOG = [
+  { name: "NEW ZOOMLION TRACTOR MODEL RK 504 -A", price: 2500000 },
+  { name: "NEW ZOOMLION TRACTOR MODEL RK 704 -A", price: 3200000 },
+  { name: "NEW ZOOMLION TRACTOR MODEL RC 904 -A", price: 4300000 },
+  { name: "NEW ZOOMLION TRACTOR MODEL RN 904 (PRO)", price: 4800000 },
+  { name: "NEW ZOOMLION TRACTOR MODEL RC 1104 -A (OLD MODEL)", price: 4500000 },
+  { name: "NEW ZOOMLION TRACTOR MODEL RC 1104 -A (NEW MODEL)", price: 4800000 },
+  { name: "NEW ZOOMLION TRACTOR MODEL RS 1604 -A", price: 8800000 },
+  { name: "NEW ZOOMLION RICE HARVESTER ZL 105", price: 6500000 },
+];
+
+const IMPLEMENT_CATALOG = [
+  { name: "2 Disc Plough Heavy Duty", price: 300000 },
+  { name: "3 Disc Heavy Duty", price: 600000 },
+  { name: "3 Disc Mounted Disc Plough", price: 600000 },
+  { name: "Advanced 5 Disc Plough", price: 950000 },
+  { name: "Hydraulic Pressure Offset Disc Harrow", price: 550000 },
+  { name: "Disc Harrows", price: 400000 },
+  { name: "Heavy Duty Water Bowsers", price: 850000 },
+  { name: "Trailer", price: 650000 },
+  { name: "Tipping & Non-Tipping Trailers", price: 650000 },
+];
+
+const SECURITY_SERVICES_CATALOG = [
+  { name: "Day Guard Service", price: 15000 },
+  { name: "Night Guard Service", price: 15000 },
+  { name: "24-Hour Guard Service", price: 30000 },
+  { name: "Supervisor Guard Service", price: 20000 },
+  { name: "K-9 (Dog) Guard Service", price: 25000 },
+  { name: "CCTV Installation & Maintenance", price: 45000 },
+  { name: "Alarm Response System", price: 10000 },
+  { name: "VIP Escort & Bodyguard Services", price: 50000 },
+];
+
+const AUTOMOBILE_SERVICES_CATALOG = [
+  { name: "Car Hire / Rental Service (Daily)", price: 5000 },
+  { name: "Chauffeur / Driver Service (Daily)", price: 2000 },
+  { name: "Airport Transfer Service", price: 3500 },
+  { name: "Vehicle Maintenance / Service", price: 8000 },
+  { name: "Wheel Alignment & Wheel Balancing", price: 2500 },
+  { name: "Full Body Car Wash & Detailing", price: 1500 },
+];
 
 interface InvoiceModalProps {
   isOpen: boolean;
@@ -21,15 +66,73 @@ export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }:
   const [notes, setNotes] = useState(initialData?.notes || '');
   const [lines, setLines] = useState(initialData?.lines || [{ description: '', quantity: 1, unitPrice: 0, taxRate: 0, total: 0 }]);
 
+  // Quick Add Form States
+  const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false);
+  const [showQuickAddSecurityClient, setShowQuickAddSecurityClient] = useState(false);
+
+  // Quick Customer Form State
+  const [custName, setCustName] = useState('');
+  const [custPhone, setCustPhone] = useState('');
+  const [custEmail, setCustEmail] = useState('');
+  const [custCounty, setCustCounty] = useState('');
+  const [custID, setCustID] = useState('');
+  const [custKRA, setCustKRA] = useState('');
+  const [custAddress, setCustAddress] = useState('');
+
+  // Quick Security Client Form State
+  const [scName, setScName] = useState('');
+  const [scPhone, setScPhone] = useState('');
+  const [scEmail, setScEmail] = useState('');
+  const [scContactPerson, setScContactPerson] = useState('');
+  const [scAddress, setScAddress] = useState('');
+  const [scKRA, setScKRA] = useState('');
+
+  const queryClient = useQueryClient();
+
+  const createCustomerMutation = useMutation({
+    mutationFn: (data: any) => crmApi.createCustomer(data),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      const newCust = res.data?.data;
+      if (newCust?.id) {
+        setCustomerId(newCust.id);
+      }
+      setShowQuickAddCustomer(false);
+      toast.success('Customer created and selected');
+    },
+    onError: () => toast.error('Failed to create customer'),
+  });
+
+  const createSecurityClientMutation = useMutation({
+    mutationFn: (data: any) => securityApi.createClient(data),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['security-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['sec-clients'] });
+      const newClient = res.data?.data;
+      if (newClient?.id) {
+        setSecurityClientId(newClient.id);
+      }
+      setShowQuickAddSecurityClient(false);
+      toast.success('Security client created and selected');
+    },
+    onError: () => toast.error('Failed to create security client'),
+  });
+
   useEffect(() => {
-    if (initialData) {
-      setType(initialData.type || 'INVOICE');
-      setCustomerId(initialData.customerId || '');
-      setSecurityClientId(initialData.securityClientId || '');
-      setContractId(initialData.contractId || '');
-      setLines(initialData.lines || [{ description: '', quantity: 1, unitPrice: 0, taxRate: 0, total: 0 }]);
+    if (isOpen) {
+      if (initialData) {
+        setType(initialData.type || 'INVOICE');
+        setCustomerId(initialData.customerId || '');
+        setSecurityClientId(initialData.securityClientId || '');
+        setContractId(initialData.contractId || '');
+        setLines(initialData.lines || [{ description: '', quantity: 1, unitPrice: 0, taxRate: 0, total: 0 }]);
+      } else if (currentCompany?.code === 'SECURITY') {
+        setLines([{ description: 'Security Services', quantity: 1, unitPrice: 15000, taxRate: 0, total: 15000 }]);
+      } else {
+        setLines([{ description: '', quantity: 1, unitPrice: 0, taxRate: 0, total: 0 }]);
+      }
     }
-  }, [initialData]);
+  }, [isOpen, initialData, currentCompany]);
 
   const { data: customersData } = useQuery({
     queryKey: ['customers'],
@@ -43,8 +146,29 @@ export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }:
     enabled: isOpen,
   });
 
+  const { data: sparePartsData } = useQuery({
+    queryKey: ['spare-parts-invoice'],
+    queryFn: () => inventoryApi.getSpareParts(),
+    enabled: isOpen && (currentCompany?.code === 'MACHINERIES' || currentCompany?.code === 'SECURITY'),
+  });
+
+  const { data: machineryData } = useQuery({
+    queryKey: ['machinery-units-invoice'],
+    queryFn: () => inventoryApi.getMachinery(),
+    enabled: isOpen && currentCompany?.code === 'MACHINERIES',
+  });
+
+  const { data: vehiclesData } = useQuery({
+    queryKey: ['vehicles-units-invoice'],
+    queryFn: () => inventoryApi.getVehicles(),
+    enabled: isOpen && currentCompany?.code === 'AUTOMOBILE',
+  });
+
   const customers = customersData?.data?.data || [];
   const securityClients = securityClientsData?.data?.data || [];
+  const spareParts = sparePartsData?.data?.data || [];
+  const machineryUnits = (machineryData?.data?.data || []).filter((u: any) => u.stockStatus === 'IN_STOCK');
+  const vehicles = vehiclesData?.data?.data || [];
 
   const addLine = () => {
     setLines([...lines, { description: '', quantity: 1, unitPrice: 0, taxRate: 0, total: 0 }]);
@@ -80,6 +204,39 @@ export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }:
       dueDate,
       notes,
       lines,
+    });
+  };
+
+  const handleQuickAddCustomerSubmit = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!custName || !custPhone) {
+      toast.error('Name and Phone are required');
+      return;
+    }
+    createCustomerMutation.mutate({
+      name: custName,
+      phone: custPhone,
+      email: custEmail || undefined,
+      county: custCounty || undefined,
+      idNumber: custID || undefined,
+      kraPin: custKRA || undefined,
+      physicalAddress: custAddress || undefined,
+    });
+  };
+
+  const handleQuickAddSecurityClientSubmit = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!scName || !scPhone) {
+      toast.error('Name and Phone are required');
+      return;
+    }
+    createSecurityClientMutation.mutate({
+      name: scName,
+      phone: scPhone,
+      email: scEmail || undefined,
+      contactPerson: scContactPerson || undefined,
+      address: scAddress || undefined,
+      kraPin: scKRA || undefined,
     });
   };
 
@@ -123,55 +280,176 @@ export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }:
             </div>
 
             {(currentCompany?.code === 'MACHINERIES' || currentCompany?.code === 'AUTOMOBILE') && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
-                <select 
-                  value={customerId} 
-                  onChange={(e) => setCustomerId(e.target.value)}
-                  className="w-full rounded-lg border-gray-300 shadow-sm focus:border-jolu-500 focus:ring-jolu-500"
-                >
-                  <option value="">Select Customer</option>
-                  {customers.map((c: any) => (
-                    <option key={c.id} value={c.id}>{c.name} ({c.phone})</option>
-                  ))}
-                </select>
+              <div className="md:col-span-2 space-y-4">
+                <div className="flex items-end gap-2">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
+                    <select 
+                      value={customerId} 
+                      onChange={(e) => setCustomerId(e.target.value)}
+                      className="w-full rounded-lg border-gray-300 shadow-sm focus:border-jolu-500 focus:ring-jolu-500"
+                    >
+                      <option value="">Select Customer</option>
+                      {customers.map((c: any) => (
+                        <option key={c.id} value={c.id}>{c.name} ({c.phone})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowQuickAddCustomer(!showQuickAddCustomer);
+                      setCustName('');
+                      setCustPhone('');
+                      setCustEmail('');
+                      setCustCounty('');
+                      setCustID('');
+                      setCustKRA('');
+                      setCustAddress('');
+                    }}
+                    className="px-3 py-2 bg-jolu-50 text-jolu-700 hover:bg-jolu-100 rounded-lg text-sm font-semibold border border-jolu-200 h-[42px] flex items-center justify-center gap-1"
+                  >
+                    <Plus className="w-4 h-4" /> Quick Add
+                  </button>
+                </div>
+
+                {showQuickAddCustomer && (
+                  <div className="p-4 bg-gray-50 border rounded-lg space-y-3">
+                    <h4 className="text-sm font-bold text-gray-700">Quick Add New Customer</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500">Name *</label>
+                        <input type="text" className="w-full text-xs rounded border-gray-300 py-1 px-2" value={custName} onChange={e => setCustName(e.target.value)} required />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500">Phone *</label>
+                        <input type="text" className="w-full text-xs rounded border-gray-300 py-1 px-2" value={custPhone} onChange={e => setCustPhone(e.target.value)} required />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500">Email</label>
+                        <input type="email" className="w-full text-xs rounded border-gray-300 py-1 px-2" value={custEmail} onChange={e => setCustEmail(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500">County</label>
+                        <select className="w-full text-xs rounded border-gray-300 py-1 px-2 bg-white" value={custCounty} onChange={e => setCustCounty(e.target.value)}>
+                          <option value="">Select County</option>
+                          {KENYA_COUNTIES.map(co => (
+                            <option key={co} value={co}>{co}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500">ID Number</label>
+                        <input type="text" className="w-full text-xs rounded border-gray-300 py-1 px-2" value={custID} onChange={e => setCustID(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500">KRA PIN</label>
+                        <input type="text" className="w-full text-xs rounded border-gray-300 py-1 px-2" value={custKRA} onChange={e => setCustKRA(e.target.value)} />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-semibold text-gray-500">Physical Address</label>
+                        <input type="text" className="w-full text-xs rounded border-gray-300 py-1 px-2" value={custAddress} onChange={e => setCustAddress(e.target.value)} />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 justify-end pt-2">
+                      <button type="button" onClick={() => setShowQuickAddCustomer(false)} className="px-3 py-1 bg-white border text-gray-600 rounded text-xs">Cancel</button>
+                      <button type="button" onClick={handleQuickAddCustomerSubmit} disabled={createCustomerMutation.isPending} className="px-3 py-1 bg-jolu-600 text-white rounded text-xs font-semibold hover:bg-jolu-700">{createCustomerMutation.isPending ? 'Saving...' : 'Save & Select'}</button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
             {currentCompany?.code === 'SECURITY' && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Security Client</label>
-                  <select 
-                    value={securityClientId} 
-                    onChange={(e) => {
-                      setSecurityClientId(e.target.value);
-                      setContractId('');
-                    }}
-                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-jolu-500 focus:ring-jolu-500"
-                  >
-                    <option value="">Select Security Client</option>
-                    {securityClients.map((c: any) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-                {securityClientId && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Contract</label>
-                    <select 
-                      value={contractId} 
-                      onChange={(e) => setContractId(e.target.value)}
-                      className="w-full rounded-lg border-gray-300 shadow-sm focus:border-jolu-500 focus:ring-jolu-500"
+              <div className="md:col-span-2 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Security Client</label>
+                      <select 
+                        value={securityClientId} 
+                        onChange={(e) => {
+                          setSecurityClientId(e.target.value);
+                          setContractId('');
+                        }}
+                        className="w-full rounded-lg border-gray-300 shadow-sm focus:border-jolu-500 focus:ring-jolu-500"
+                      >
+                        <option value="">Select Security Client</option>
+                        {securityClients.map((c: any) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowQuickAddSecurityClient(!showQuickAddSecurityClient);
+                        setScName('');
+                        setScPhone('');
+                        setScEmail('');
+                        setScContactPerson('');
+                        setScAddress('');
+                        setScKRA('');
+                      }}
+                      className="px-3 py-2 bg-jolu-50 text-jolu-700 hover:bg-jolu-100 rounded-lg text-sm font-semibold border border-jolu-200 h-[42px] flex items-center justify-center gap-1"
                     >
-                      <option value="">Select Contract</option>
-                      {securityClients.find((c: any) => c.id === securityClientId)?.contracts?.map((con: any) => (
-                        <option key={con.id} value={con.id}>{con.contractNumber}</option>
-                      ))}
-                    </select>
+                      <Plus className="w-4 h-4" /> Quick Add
+                    </button>
+                  </div>
+
+                  {securityClientId && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Contract</label>
+                      <select 
+                        value={contractId} 
+                        onChange={(e) => setContractId(e.target.value)}
+                        className="w-full rounded-lg border-gray-300 shadow-sm focus:border-jolu-500 focus:ring-jolu-500"
+                      >
+                        <option value="">Select Contract</option>
+                        {securityClients.find((c: any) => c.id === securityClientId)?.contracts?.map((con: any) => (
+                          <option key={con.id} value={con.id}>{con.contractNumber}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                {showQuickAddSecurityClient && (
+                  <div className="p-4 bg-gray-50 border rounded-lg space-y-3">
+                    <h4 className="text-sm font-bold text-gray-700">Quick Add New Security Client</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500">Name *</label>
+                        <input type="text" className="w-full text-xs rounded border-gray-300 py-1 px-2" value={scName} onChange={e => setScName(e.target.value)} required />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500">Phone *</label>
+                        <input type="text" className="w-full text-xs rounded border-gray-300 py-1 px-2" value={scPhone} onChange={e => setScPhone(e.target.value)} required />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500">Email</label>
+                        <input type="email" className="w-full text-xs rounded border-gray-300 py-1 px-2" value={scEmail} onChange={e => setScEmail(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500">Contact Person</label>
+                        <input type="text" className="w-full text-xs rounded border-gray-300 py-1 px-2" value={scContactPerson} onChange={e => setScContactPerson(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500">KRA PIN</label>
+                        <input type="text" className="w-full text-xs rounded border-gray-300 py-1 px-2" value={scKRA} onChange={e => setScKRA(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500">Address</label>
+                        <input type="text" className="w-full text-xs rounded border-gray-300 py-1 px-2" value={scAddress} onChange={e => setScAddress(e.target.value)} />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 justify-end pt-2">
+                      <button type="button" onClick={() => setShowQuickAddSecurityClient(false)} className="px-3 py-1 bg-white border text-gray-600 rounded text-xs">Cancel</button>
+                      <button type="button" onClick={handleQuickAddSecurityClientSubmit} disabled={createSecurityClientMutation.isPending} className="px-3 py-1 bg-jolu-600 text-white rounded text-xs font-semibold hover:bg-jolu-700">{createSecurityClientMutation.isPending ? 'Saving...' : 'Save & Select'}</button>
+                    </div>
                   </div>
                 )}
-              </>
+              </div>
             )}
           </div>
 
@@ -202,15 +480,152 @@ export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }:
                 <tbody className="divide-y">
                   {lines.map((line: any, index: number) => (
                     <tr key={index}>
-                      <td className="py-3 pr-4">
+                      <td className="py-3 pr-4 space-y-2">
                         <input 
                           type="text" 
                           value={line.description} 
                           onChange={(e) => updateLine(index, 'description', e.target.value)}
                           placeholder="Item description"
-                          className="w-full border-none focus:ring-0 p-0 text-sm"
+                          className="w-full border-none focus:ring-0 p-0 text-sm font-semibold"
                           required
                         />
+                        {currentCompany?.code === 'MACHINERIES' && (
+                          <div className="pt-1">
+                            <select
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (!val) return;
+                                const [typePrefix, keyStr] = val.split('::');
+                                const key = Number(keyStr);
+                                if (typePrefix === 'tractor') {
+                                  const item = TRACTOR_CATALOG[key];
+                                  updateLine(index, 'description', item.name);
+                                  updateLine(index, 'unitPrice', item.price);
+                                } else if (typePrefix === 'implement') {
+                                  const item = IMPLEMENT_CATALOG[key];
+                                  updateLine(index, 'description', item.name);
+                                  updateLine(index, 'unitPrice', item.price);
+                                } else if (typePrefix === 'machinery') {
+                                  const item = machineryUnits[key];
+                                  const desc = `${item.brand} ${item.model} ${item.productName} (S/N: ${item.serialNumber || item.chassisNumber || item.id})`;
+                                  updateLine(index, 'description', desc);
+                                  updateLine(index, 'unitPrice', Number(item.sellingPrice));
+                                } else if (typePrefix === 'sparepart') {
+                                  const item = spareParts[key];
+                                  const desc = `Spare Part: ${item.partName} (${item.partNumber})`;
+                                  updateLine(index, 'description', desc);
+                                  updateLine(index, 'unitPrice', Number(item.sellingPrice));
+                                }
+                                e.target.value = '';
+                              }}
+                              className="rounded border-gray-300 text-[11px] py-1 px-2 text-gray-600 focus:border-jolu-500 focus:ring-jolu-500 w-full max-w-xs"
+                            >
+                              <option value="">-- Choose Product / Spare Part --</option>
+                              <optgroup label="Tractors (Flyer Catalog)">
+                                {TRACTOR_CATALOG.map((item, i) => (
+                                  <option key={i} value={`tractor::${i}`}>{item.name} - KES {item.price.toLocaleString()}</option>
+                                ))}
+                              </optgroup>
+                              <optgroup label="Implements (Flyer Catalog)">
+                                {IMPLEMENT_CATALOG.map((item, i) => (
+                                  <option key={i} value={`implement::${i}`}>{item.name} - KES {item.price.toLocaleString()}</option>
+                                ))}
+                              </optgroup>
+                              {machineryUnits.length > 0 && (
+                                <optgroup label="Machinery Inventory (In Stock)">
+                                  {machineryUnits.map((item: any, i: number) => (
+                                    <option key={item.id} value={`machinery::${i}`}>{item.brand} {item.model} {item.productName} (S/N: {item.serialNumber || 'N/A'}) - KES {Number(item.sellingPrice).toLocaleString()}</option>
+                                  ))}
+                                </optgroup>
+                              )}
+                              {spareParts.length > 0 && (
+                                <optgroup label="Spare Parts Inventory">
+                                  {spareParts.map((item: any, i: number) => (
+                                    <option key={item.id} value={`sparepart::${i}`}>{item.partName} ({item.partNumber}) - KES {Number(item.sellingPrice).toLocaleString()}</option>
+                                  ))}
+                                </optgroup>
+                              )}
+                            </select>
+                          </div>
+                        )}
+                        {currentCompany?.code === 'AUTOMOBILE' && (
+                          <div className="pt-1">
+                            <select
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (!val) return;
+                                const [typePrefix, keyStr] = val.split('::');
+                                const key = Number(keyStr);
+                                if (typePrefix === 'service') {
+                                  const item = AUTOMOBILE_SERVICES_CATALOG[key];
+                                  updateLine(index, 'description', item.name);
+                                  updateLine(index, 'unitPrice', item.price);
+                                } else if (typePrefix === 'vehicle') {
+                                  const item = vehicles[key];
+                                  const desc = `Vehicle Rental: ${item.make} ${item.model} (${item.registrationNumber})`;
+                                  updateLine(index, 'description', desc);
+                                  updateLine(index, 'unitPrice', Number(item.dailyRate || 0));
+                                }
+                                e.target.value = '';
+                              }}
+                              className="rounded border-gray-300 text-[11px] py-1 px-2 text-gray-600 focus:border-jolu-500 focus:ring-jolu-500 w-full max-w-xs"
+                            >
+                              <option value="">-- Choose Automobile Service / Vehicle --</option>
+                              <optgroup label="Standard Automobile Services">
+                                {AUTOMOBILE_SERVICES_CATALOG.map((item, i) => (
+                                  <option key={i} value={`service::${i}`}>{item.name} - KES {item.price.toLocaleString()}</option>
+                                ))}
+                              </optgroup>
+                              {vehicles.length > 0 && (
+                                <optgroup label="Fleet Inventory Vehicles">
+                                  {vehicles.map((item: any, i: number) => (
+                                    <option key={item.id} value={`vehicle::${i}`}>{item.make} {item.model} ({item.registrationNumber}) - KES {Number(item.dailyRate || 0).toLocaleString()}</option>
+                                  ))}
+                                </optgroup>
+                              )}
+                            </select>
+                          </div>
+                        )}
+                        {currentCompany?.code === 'SECURITY' && (
+                          <div className="pt-1">
+                            <select
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (!val) return;
+                                const [typePrefix, keyStr] = val.split('::');
+                                const key = Number(keyStr);
+                                if (typePrefix === 'service') {
+                                  const item = SECURITY_SERVICES_CATALOG[key];
+                                  updateLine(index, 'description', item.name);
+                                  updateLine(index, 'unitPrice', item.price);
+                                  updateLine(index, 'taxRate', 0);
+                                } else if (typePrefix === 'item') {
+                                  const item = spareParts[key];
+                                  const desc = `Security Item: ${item.partName} (${item.partNumber})`;
+                                  updateLine(index, 'description', desc);
+                                  updateLine(index, 'unitPrice', Number(item.sellingPrice || 0));
+                                  updateLine(index, 'taxRate', 0);
+                                }
+                                e.target.value = '';
+                              }}
+                              className="rounded border-gray-300 text-[11px] py-1 px-2 text-gray-600 focus:border-jolu-500 focus:ring-jolu-500 w-full max-w-xs"
+                            >
+                              <option value="">-- Choose Security Service / Item --</option>
+                              <optgroup label="Standard Security Services">
+                                {SECURITY_SERVICES_CATALOG.map((item, i) => (
+                                  <option key={i} value={`service::${i}`}>{item.name} - KES {item.price.toLocaleString()}</option>
+                                ))}
+                              </optgroup>
+                              {spareParts.length > 0 && (
+                                <optgroup label="Security Inventory Items">
+                                  {spareParts.map((item: any, i: number) => (
+                                    <option key={item.id} value={`item::${i}`}>{item.partName} ({item.partNumber}) - KES {Number(item.sellingPrice || 0).toLocaleString()}</option>
+                                  ))}
+                                </optgroup>
+                              )}
+                            </select>
+                          </div>
+                        )}
                       </td>
                       <td className="py-3 pr-4">
                         <input 

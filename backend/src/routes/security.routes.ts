@@ -77,6 +77,7 @@ router.get(
               site: true,
             },
           },
+          invoices: true,
         },
         orderBy: {
           createdAt: 'desc',
