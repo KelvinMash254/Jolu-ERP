@@ -3,15 +3,30 @@ import { useState } from 'react';
 import api from '../services/api';
 import { PageHeader, LoadingSpinner } from '../components/ui/Shared';
 import UserModal from '../components/UserModal';
+import { useAuthStore } from '../store/authStore';
 
 export default function UsersPage() {
+  const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const allowedEmails = ['admin@jolugroup.co.ke', 'john@jolugroup.com', 'lucy@jolugroup.com'];
+  const canSeeRoles = user && allowedEmails.includes(user.email.toLowerCase());
 
   const { data, isLoading } = useQuery({
     queryKey: ['users'],
     queryFn: () => api.get('/users'),
+    enabled: !!canSeeRoles,
   });
+
+  if (!canSeeRoles) {
+    return (
+      <div className="p-8 text-center">
+        <h2 className="text-xl font-bold text-red-600">Access Denied</h2>
+        <p className="text-gray-500 mt-2">You do not have permission to view roles or manage users.</p>
+      </div>
+    );
+  }
 
   const createMutation = useMutation({
     mutationFn: (data: any) => api.post('/users', data),

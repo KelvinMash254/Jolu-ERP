@@ -5,6 +5,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Plus, Receipt, FileText } from 'lucide-react';
 import InvoiceModal from '../components/InvoiceModal';
+import InvoicePreviewModal from '../components/InvoicePreviewModal';
 import { invoiceApi } from '../services/api';
 
 export default function SecurityPage() {
@@ -13,6 +14,7 @@ export default function SecurityPage() {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState<any>({});
   const [selectedContract, setSelectedContract] = useState<any>(null);
+  const [createdInvoiceId, setCreatedInvoiceId] = useState<string | null>(null);
 
   const { data: clients, isLoading: lc } = useQuery({ queryKey: ['sec-clients'], queryFn: () => securityApi.getClients(), enabled: tab === 'clients' });
   const { data: contracts, isLoading: lco } = useQuery({ queryKey: ['sec-contracts'], queryFn: () => securityApi.getContracts(), enabled: tab === 'contracts' });
@@ -51,10 +53,16 @@ export default function SecurityPage() {
 
   const createInvoiceMutation = useMutation({
     mutationFn: (data: any) => invoiceApi.create(data),
-    onSuccess: () => { 
-      toast.success('Invoice created successfully');
+    onSuccess: (res: any) => {
+      const invId = res.data?.data?.id;
+      if (invId) {
+        setCreatedInvoiceId(invId);
+      } else {
+        toast.success('Invoice created successfully');
+      }
       setSelectedContract(null);
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['sec-contracts'] });
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.error || 'Failed to create invoice');
@@ -97,8 +105,12 @@ export default function SecurityPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {tab === 'clients' && (
                 <>
-                  <div><label className="label">Name</label><input className="input" onChange={e => setFormData({...formData, name: e.target.value})} /></div>
-                  <div><label className="label">Phone</label><input className="input" onChange={e => setFormData({...formData, phone: e.target.value})} /></div>
+                  <div><label className="label">Name</label><input className="input" onChange={e => setFormData({...formData, name: e.target.value})} required /></div>
+                  <div><label className="label">Phone</label><input className="input" onChange={e => setFormData({...formData, phone: e.target.value})} required /></div>
+                  <div><label className="label">Contact Person</label><input className="input" onChange={e => setFormData({...formData, contactPerson: e.target.value})} /></div>
+                  <div><label className="label">Email</label><input className="input" type="email" onChange={e => setFormData({...formData, email: e.target.value})} /></div>
+                  <div><label className="label">KRA PIN</label><input className="input" onChange={e => setFormData({...formData, kraPin: e.target.value})} /></div>
+                  <div className="md:col-span-2"><label className="label">Address</label><input className="input" onChange={e => setFormData({...formData, address: e.target.value})} /></div>
                 </>
               )}
               {tab === 'contracts' && (
@@ -168,7 +180,17 @@ export default function SecurityPage() {
             )}
             {tab === 'contracts' && (
               <table className="w-full text-sm">
-                <thead className="bg-gray-50"><tr className="text-left text-gray-500"><th className="px-6 py-3">Contract</th><th className="px-6 py-3">Client</th><th className="px-6 py-3">Monthly Fee</th><th className="px-6 py-3">Guards</th><th className="px-6 py-3">Status</th><th className="px-6 py-3">Actions</th></tr></thead>
+                <thead className="bg-gray-50">
+                  <tr className="text-left text-gray-500">
+                    <th className="px-6 py-3">Contract</th>
+                    <th className="px-6 py-3">Client</th>
+                    <th className="px-6 py-3">Monthly Fee</th>
+                    <th className="px-6 py-3">Guards</th>
+                    <th className="px-6 py-3">Invoicing</th>
+                    <th className="px-6 py-3">Status</th>
+                    <th className="px-6 py-3">Actions</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {(contracts?.data?.data || []).map((c: any) => (
                     <tr key={c.id} className="border-t">
@@ -176,6 +198,21 @@ export default function SecurityPage() {
                       <td className="px-6 py-4">{c.client.name}</td>
                       <td className="px-6 py-4">{formatCurrency(Number(c.monthlyFee))}</td>
                       <td className="px-6 py-4">{c.guardsCount}</td>
+                      <td className="px-6 py-4">
+                        {c.invoices && c.invoices.length > 0 ? (
+                          <span className={`badge ${
+                            c.invoices.some((inv: any) => inv.status === 'PAID') ? 'bg-green-100 text-green-800' :
+                            c.invoices.some((inv: any) => inv.status === 'SENT') ? 'bg-blue-100 text-blue-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {c.invoices.some((inv: any) => inv.status === 'PAID') ? 'Paid' :
+                             c.invoices.some((inv: any) => inv.status === 'SENT') ? 'Invoice Sent' :
+                             'Draft'}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 text-xs">No Invoice</span>
+                        )}
+                      </td>
                       <td className="px-6 py-4">{c.status}</td>
                       <td className="px-6 py-4">
                         <div className="flex gap-2">
@@ -241,10 +278,21 @@ export default function SecurityPage() {
               description: `Security Services for ${selectedContract.contractNumber}`,
               quantity: 1,
               unitPrice: selectedContract.monthlyFee,
-              taxRate: 16,
+              taxRate: 0,
               total: selectedContract.monthlyFee
             }]
           }}
+        />
+      )}
+
+      {createdInvoiceId && (
+        <InvoicePreviewModal
+          isOpen={!!createdInvoiceId}
+          onClose={() => {
+            setCreatedInvoiceId(null);
+            queryClient.invalidateQueries({ queryKey: ['sec-contracts'] });
+          }}
+          invoiceId={createdInvoiceId}
         />
       )}
     </div>

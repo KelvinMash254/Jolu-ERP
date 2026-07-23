@@ -63,7 +63,12 @@ router.post('/', requirePermission('users', 'create'), async (req: AuthRequest, 
   res.status(201).json({ success: true, data: safeUser });
 });
 
-router.get('/roles', requirePermission('users', 'read'), async (_req, res) => {
+router.get('/roles', requirePermission('users', 'read'), async (req: AuthRequest, res) => {
+  const allowedEmails = ['admin@jolugroup.co.ke', 'john@jolugroup.com', 'lucy@jolugroup.com'];
+  if (!req.user || !allowedEmails.includes(req.user.email.toLowerCase())) {
+    return res.status(403).json({ success: false, message: 'Forbidden' });
+  }
+
   const roles = await prisma.role.findMany({
     include: { permissions: { include: { permission: true } } },
   });

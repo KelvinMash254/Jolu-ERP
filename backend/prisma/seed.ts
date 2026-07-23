@@ -152,6 +152,7 @@ async function main() {
   const superAdminRole = await prisma.role.findUnique({ where: { name: 'SUPER_ADMIN' } });
   const companyAdminRole = await prisma.role.findUnique({ where: { name: 'COMPANY_ADMIN' } });
   const salesRepRole = await prisma.role.findUnique({ where: { name: 'SALES_REPRESENTATIVE' } });
+  const technicianRole = await prisma.role.findUnique({ where: { name: 'TECHNICIAN' } });
   const passwordHash = await bcrypt.hash('Admin@123', 12);
 
   // Default system admin
@@ -217,7 +218,7 @@ async function main() {
       email: 'musyoka@jolugroup.com',
       firstName: 'Musyoka',
       lastName: 'Machineries',
-      roleId: salesRepRole!.id,
+      roleId: technicianRole!.id,
       companyCodes: [CompanyCode.MACHINERIES],
       isPrimaryCode: CompanyCode.MACHINERIES
     },
