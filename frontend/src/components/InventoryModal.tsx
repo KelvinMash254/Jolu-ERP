@@ -1,404 +1,343 @@
-import { useState, useEffect } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { crmApi, securityApi, inventoryApi } from '../services/api';
+import { useState } from 'react';
+import { X } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
-const TRACTOR_CATALOG = [
-  { name: "NEW ZOOMLION TRACTOR MODEL RK 504 -A", price: 2500000 },
-  { name: "NEW ZOOMLION TRACTOR MODEL RK 704 -A", price: 3200000 },
-  { name: "NEW ZOOMLION TRACTOR MODEL RC 904 -A", price: 4300000 },
-  { name: "NEW ZOOMLION TRACTOR MODEL RN 904 (PRO)", price: 4800000 },
-  { name: "NEW ZOOMLION TRACTOR MODEL RC 1104 -A (OLD MODEL)", price: 4500000 },
-  { name: "NEW ZOOMLION TRACTOR MODEL RC 1104 -A (NEW MODEL)", price: 4800000 },
-  { name: "NEW ZOOMLION TRACTOR MODEL RS 1604 -A", price: 8800000 },
-  { name: "NEW ZOOMLION RICE HARVESTER ZL 105", price: 6500000 },
-];
-
-const IMPLEMENT_CATALOG = [
-  { name: "2 Disc Plough Heavy Duty", price: 300000 },
-  { name: "3 Disc Heavy Duty", price: 600000 },
-  { name: "3 Disc Mounted Disc Plough", price: 600000 },
-  { name: "Advanced 5 Disc Plough", price: 950000 },
-  { name: "Hydraulic Pressure Offset Disc Harrow", price: 550000 },
-  { name: "Disc Harrows", price: 400000 },
-  { name: "Heavy Duty Water Bowsers", price: 850000 },
-  { name: "Trailer", price: 650000 },
-  { name: "Tipping & Non-Tipping Trailers", price: 650000 },
-];
-
-interface InvoiceModalProps {
+interface InventoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: any) => void;
-  initialData?: any;
+  onSubmit: (type: 'machinery' | 'spare-parts' | 'vehicles', data: any) => void;
+  activeTab: 'machinery' | 'spare-parts' | 'vehicles';
 }
 
-export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }: InvoiceModalProps) {
+export default function InventoryModal({ isOpen, onClose, onSubmit, activeTab }: InventoryModalProps) {
   const { currentCompany } = useAuthStore();
-  const [type, setType] = useState(initialData?.type || 'INVOICE');
-  const [customerId, setCustomerId] = useState(initialData?.customerId || '');
-  const [securityClientId, setSecurityClientId] = useState(initialData?.securityClientId || '');
-  const [contractId, setContractId] = useState(initialData?.contractId || '');
-  const [dueDate, setDueDate] = useState(initialData?.dueDate || '');
-  const [notes, setNotes] = useState(initialData?.notes || '');
-  const [lines, setLines] = useState(initialData?.lines || [{ description: '', quantity: 1, unitPrice: 0, taxRate: 0, total: 0 }]);
-
-  useEffect(() => {
-    if (isOpen) {
-      if (initialData) {
-        setType(initialData.type || 'INVOICE');
-        setCustomerId(initialData.customerId || '');
-        setSecurityClientId(initialData.securityClientId || '');
-        setContractId(initialData.contractId || '');
-        setLines(initialData.lines || [{ description: '', quantity: 1, unitPrice: 0, taxRate: 0, total: 0 }]);
-      } else if (currentCompany?.code === 'SECURITY') {
-        setLines([{ description: 'Security Services', quantity: 1, unitPrice: 15000, taxRate: 16, total: 15000 }]);
-      } else {
-        setLines([{ description: '', quantity: 1, unitPrice: 0, taxRate: 0, total: 0 }]);
-      }
-    }
-  }, [isOpen, initialData, currentCompany]);
-
-  const { data: customersData } = useQuery({
-    queryKey: ['customers'],
-    queryFn: () => crmApi.getCustomers(),
-    enabled: isOpen,
-  });
-
-  const { data: securityClientsData } = useQuery({
-    queryKey: ['security-clients'],
-    queryFn: () => securityApi.getClients(),
-    enabled: isOpen,
-  });
-
-  const { data: sparePartsData } = useQuery({
-    queryKey: ['spare-parts-invoice'],
-    queryFn: () => inventoryApi.getSpareParts(),
-    enabled: isOpen && currentCompany?.code === 'MACHINERIES',
-  });
-
-  const { data: machineryData } = useQuery({
-    queryKey: ['machinery-units-invoice'],
-    queryFn: () => inventoryApi.getMachinery(),
-    enabled: isOpen && currentCompany?.code === 'MACHINERIES',
-  });
-
-  const customers = customersData?.data?.data || [];
-  const securityClients = securityClientsData?.data?.data || [];
-  const spareParts = sparePartsData?.data?.data || [];
-  const machineryUnits = (machineryData?.data?.data || []).filter((u: any) => u.stockStatus === 'IN_STOCK');
-
-  const addLine = () => {
-    setLines([...lines, { description: '', quantity: 1, unitPrice: 0, taxRate: 0, total: 0 }]);
-  };
-
-  const removeLine = (index: number) => {
-    setLines(lines.filter((_: any, i: number) => i !== index));
-  };
-
-  const updateLine = (index: number, field: string, value: any) => {
-    const newLines = [...lines];
-    const line = { ...newLines[index], [field]: value };
-    
-    if (field === 'quantity' || field === 'unitPrice') {
-      line.total = Number(line.quantity) * Number(line.unitPrice);
-    }
-    
-    newLines[index] = line;
-    setLines(newLines);
-  };
-
-  const subtotal = lines.reduce((sum: number, line: any) => sum + line.total, 0);
-  const taxAmount = lines.reduce((sum: number, line: any) => sum + (line.total * (line.taxRate / 100)), 0);
-  const total = subtotal + taxAmount;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit({
-      type,
-      customerId: customerId || undefined,
-      securityClientId: securityClientId || undefined,
-      contractId: contractId || undefined,
-      dueDate,
-      notes,
-      lines,
-    });
-  };
+  const [formData, setFormData] = useState<any>({});
 
   if (!isOpen) return null;
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(activeTab, formData);
+  };
+
+  const handleChange = (field: string, value: any) => {
+    setFormData((prev: any) => ({ ...prev, [field]: value }));
+  };
+
+  const renderMachineryForm = () => (
+    <>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="col-span-2">
+          <label className="label">Product Name</label>
+          <input className="input" required onChange={(e) => handleChange('productName', e.target.value)} />
+        </div>
+        <div>
+          <label className="label">Category</label>
+          <select className="input" required onChange={(e) => handleChange('category', e.target.value)}>
+            <option value="">Select Category</option>
+            <option value="TRACTOR">Tractor</option>
+            <option value="HARVESTER">Harvester</option>
+            <option value="FARM_IMPLEMENT">Farm Implement</option>
+          </select>
+        </div>
+        <div>
+          <label className="label">Brand</label>
+          <input className="input" required onChange={(e) => handleChange('brand', e.target.value)} />
+        </div>
+        <div>
+          <label className="label">Model</label>
+          <input className="input" required onChange={(e) => handleChange('model', e.target.value)} />
+        </div>
+        <div>
+          <label className="label">Serial Number</label>
+          <input className="input" onChange={(e) => handleChange('serialNumber', e.target.value)} />
+        </div>
+        <div>
+          <label className="label">Chassis Number</label>
+          <input className="input" onChange={(e) => handleChange('chassisNumber', e.target.value)} />
+        </div>
+        <div>
+          <label className="label">Engine Number</label>
+          <input className="input" onChange={(e) => handleChange('engineNumber', e.target.value)} />
+        </div>
+        <div>
+          <label className="label">Cost Price</label>
+          <input className="input" type="number" required onChange={(e) => handleChange('costPrice', Number(e.target.value))} />
+        </div>
+        <div>
+          <label className="label">Selling Price</label>
+          <input className="input" type="number" required onChange={(e) => handleChange('sellingPrice', Number(e.target.value))} />
+        </div>
+        <div>
+          <label className="label">Initial Mileage</label>
+          <input className="input" type="number" onChange={(e) => handleChange('mileage', Number(e.target.value))} />
+        </div>
+      </div>
+    </>
+  );
+
+const renderSparePartForm = () => (
+  <>
+    <div className="grid grid-cols-2 gap-4">
+      <div>
+        <label className="label">
+          {currentCompany?.code === 'SECURITY' ? 'Item Code' : 'Part Number'}
+        </label>
+
+        <input
+          className="input"
+          required
+          placeholder={currentCompany?.code === 'SECURITY' ? 'SEC-001' : 'SP-001'}
+          onChange={(e) => handleChange('partNumber', e.target.value)}
+        />
+      </div>
+
+      <div>
+        <label className="label">
+          {currentCompany?.code === 'SECURITY' ? 'Item Name' : 'Part Name'}
+        </label>
+
+        <input
+          className="input"
+          required
+          placeholder={
+            currentCompany?.code === 'SECURITY'
+              ? 'Security Boots'
+              : 'Oil Filter'
+          }
+          onChange={(e) => handleChange('partName', e.target.value)}
+        />
+      </div>
+
+      {/* CATEGORY */}
+
+      <div>
+        <label className="label">Category</label>
+
+        {currentCompany?.code === 'SECURITY' ? (
+          <select
+            className="input"
+            required
+            onChange={(e) => handleChange('category', e.target.value)}
+          >
+            <option value="">Select Category</option>
+
+            <option value="Uniform">Uniform</option>
+
+            <option value="Footwear">Footwear</option>
+
+            <option value="Accessories">Accessories</option>
+
+            <option value="Protective Gear">Protective Gear</option>
+
+            <option value="Equipment">Equipment</option>
+
+            <option value="Office Supplies">Office Supplies</option>
+          </select>
+        ) : (
+          <select
+            className="input"
+            required
+            onChange={(e) => handleChange('category', e.target.value)}
+          >
+            <option value="">Select Category</option>
+            <option value="Tractor Spares">Tractor Spares</option>
+            <option value="Filters">Filters</option>
+            <option value="Hydraulics">Hydraulics</option>
+            <option value="Mechanical">Mechanical</option>
+            <option value="Electrical">Electrical</option>
+            <option value="Other">Other</option>
+          </select>
+        )}
+      </div>
+
+      {/* UNIT */}
+
+      {currentCompany?.code === 'SECURITY' ? (
+        <div>
+          <label className="label">Unit</label>
+
+          <select
+            className="input"
+            required
+            onChange={(e) => handleChange('unit', e.target.value)}
+          >
+            <option value="">Select Unit</option>
+
+            <option value="Pieces">Pieces</option>
+
+            <option value="Pairs">Pairs</option>
+
+            <option value="Sets">Sets</option>
+
+            <option value="Boxes">Boxes</option>
+
+            <option value="Rolls">Rolls</option>
+          </select>
+        </div>
+      ) : (
+        <>
+          <div>
+            <label className="label">Cost Price</label>
+
+            <input
+              className="input"
+              type="number"
+              required
+              onChange={(e) =>
+                handleChange('costPrice', Number(e.target.value))
+              }
+            />
+          </div>
+
+          <div>
+            <label className="label">Selling Price</label>
+
+            <input
+              className="input"
+              type="number"
+              required
+              onChange={(e) =>
+                handleChange('sellingPrice', Number(e.target.value))
+              }
+            />
+          </div>
+        </>
+      )}
+
+      {/* QUANTITY */}
+
+      <div>
+        <label className="label">Initial Quantity</label>
+
+        <input
+          className="input"
+          type="number"
+          required
+          onChange={(e) => handleChange('quantity', Number(e.target.value))}
+        />
+      </div>
+
+      {/* REORDER */}
+
+      <div>
+        <label className="label">Reorder Level</label>
+
+        <input
+          className="input"
+          type="number"
+          defaultValue={10}
+          onChange={(e) =>
+            handleChange('reorderLevel', Number(e.target.value))
+          }
+        />
+      </div>
+
+      {/* DESCRIPTION */}
+
+      {currentCompany?.code === 'SECURITY' && (
+        <div className="col-span-2">
+          <label className="label">Description (Optional)</label>
+
+          <textarea
+            rows={3}
+            className="input"
+            placeholder="Additional details..."
+            onChange={(e) => handleChange('description', e.target.value)}
+          />
+        </div>
+      )}
+    </div>
+  </>
+);
+
+  const renderVehicleForm = () => (
+    <>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="label">Registration Number</label>
+          <input className="input" required onChange={(e) => handleChange('registrationNumber', e.target.value)} />
+        </div>
+        <div>
+          <label className="label">Make</label>
+          <input className="input" required onChange={(e) => handleChange('make', e.target.value)} />
+        </div>
+        <div>
+          <label className="label">Model</label>
+          <input className="input" required onChange={(e) => handleChange('model', e.target.value)} />
+        </div>
+        <div>
+          <label className="label">Year</label>
+          <input className="input" type="number" required onChange={(e) => handleChange('year', Number(e.target.value))} />
+        </div>
+        <div>
+          <label className="label">Category</label>
+          <select className="input" required onChange={(e) => handleChange('category', e.target.value)}>
+            <option value="Sedan">Sedan</option>
+            <option value="SUV">SUV</option>
+            <option value="Pickup">Pickup</option>
+            <option value="Van">Van</option>
+            <option value="Truck">Truck</option>
+            <option value="Luxury">Luxury</option>
+          </select>
+        </div>
+        <div>
+          <label className="label">Transmission</label>
+          <select className="input" required onChange={(e) => handleChange('transmission', e.target.value)}>
+            <option value="Automatic">Automatic</option>
+            <option value="Manual">Manual</option>
+          </select>
+        </div>
+        <div>
+          <label className="label">Fuel Type</label>
+          <select className="input" required onChange={(e) => handleChange('fuelType', e.target.value)}>
+            <option value="Petrol">Petrol</option>
+            <option value="Diesel">Diesel</option>
+            <option value="Electric">Electric</option>
+            <option value="Hybrid">Hybrid</option>
+          </select>
+        </div>
+        <div>
+          <label className="label">Daily Rate (KES)</label>
+          <input className="input" type="number" required onChange={(e) => handleChange('dailyRate', Number(e.target.value))} />
+        </div>
+        <div>
+          <label className="label">Weekly Rate (KES)</label>
+          <input className="input" type="number" required onChange={(e) => handleChange('weeklyRate', Number(e.target.value))} />
+        </div>
+        <div>
+          <label className="label">Monthly Rate (KES)</label>
+          <input className="input" type="number" required onChange={(e) => handleChange('monthlyRate', Number(e.target.value))} />
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl">
         <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-xl font-bold">Create New Invoice</h2>
+<h2 className="text-xl font-bold capitalize">
+  {currentCompany?.code === 'SECURITY' && activeTab === 'spare-parts'
+    ? 'Add Security Item'
+    : `Add ${activeTab.replace('-', ' ')}`}
+</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Type</label>
-              <select 
-                value={type} 
-                onChange={(e) => setType(e.target.value)}
-                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-jolu-500 focus:ring-jolu-500"
-              >
-                <option value="PROFORMA">Proforma Invoice</option>
-                <option value="INVOICE">Invoice</option>
-                <option value="QUOTATION">Quotation</option>
-                <option value="DELIVERY_NOTE">Delivery Note</option>
-                <option value="RECEIPT">Receipt</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
-              <input 
-                type="date" 
-                value={dueDate} 
-                onChange={(e) => setDueDate(e.target.value)}
-                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-jolu-500 focus:ring-jolu-500"
-              />
-            </div>
-
-            {(currentCompany?.code === 'MACHINERIES' || currentCompany?.code === 'AUTOMOBILE') && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
-                <select 
-                  value={customerId} 
-                  onChange={(e) => setCustomerId(e.target.value)}
-                  className="w-full rounded-lg border-gray-300 shadow-sm focus:border-jolu-500 focus:ring-jolu-500"
-                >
-                  <option value="">Select Customer</option>
-                  {customers.map((c: any) => (
-                    <option key={c.id} value={c.id}>{c.name} ({c.phone})</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {currentCompany?.code === 'SECURITY' && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Security Client</label>
-                  <select 
-                    value={securityClientId} 
-                    onChange={(e) => {
-                      setSecurityClientId(e.target.value);
-                      setContractId('');
-                    }}
-                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-jolu-500 focus:ring-jolu-500"
-                  >
-                    <option value="">Select Security Client</option>
-                    {securityClients.map((c: any) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-                {securityClientId && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Contract</label>
-                    <select 
-                      value={contractId} 
-                      onChange={(e) => setContractId(e.target.value)}
-                      className="w-full rounded-lg border-gray-300 shadow-sm focus:border-jolu-500 focus:ring-jolu-500"
-                    >
-                      <option value="">Select Contract</option>
-                      {securityClients.find((c: any) => c.id === securityClientId)?.contracts?.map((con: any) => (
-                        <option key={con.id} value={con.id}>{con.contractNumber}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium">Line Items</h3>
-              <button 
-                type="button" 
-                onClick={addLine}
-                className="flex items-center gap-1 text-sm text-jolu-600 font-medium hover:text-jolu-700"
-              >
-                <Plus className="w-4 h-4" /> Add Line Item
-              </button>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-gray-500 border-b">
-                    <th className="pb-2 font-medium">Description</th>
-                    <th className="pb-2 font-medium w-20">Qty</th>
-                    <th className="pb-2 font-medium w-32">Unit Price</th>
-                    <th className="pb-2 font-medium w-24">Tax (%)</th>
-                    <th className="pb-2 font-medium w-32 text-right">Total</th>
-                    <th className="pb-2 w-10"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {lines.map((line: any, index: number) => (
-                    <tr key={index}>
-                      <td className="py-3 pr-4 space-y-2">
-                        <input 
-                          type="text" 
-                          value={line.description} 
-                          onChange={(e) => updateLine(index, 'description', e.target.value)}
-                          placeholder="Item description"
-                          className="w-full border-none focus:ring-0 p-0 text-sm font-semibold"
-                          required
-                        />
-                        {currentCompany?.code === 'MACHINERIES' && (
-                          <div className="pt-1">
-                            <select
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                if (!val) return;
-                                const [typePrefix, keyStr] = val.split('::');
-                                const key = Number(keyStr);
-                                if (typePrefix === 'tractor') {
-                                  const item = TRACTOR_CATALOG[key];
-                                  updateLine(index, 'description', item.name);
-                                  updateLine(index, 'unitPrice', item.price);
-                                } else if (typePrefix === 'implement') {
-                                  const item = IMPLEMENT_CATALOG[key];
-                                  updateLine(index, 'description', item.name);
-                                  updateLine(index, 'unitPrice', item.price);
-                                } else if (typePrefix === 'machinery') {
-                                  const item = machineryUnits[key];
-                                  const desc = `${item.brand} ${item.model} ${item.productName} (S/N: ${item.serialNumber || item.chassisNumber || item.id})`;
-                                  updateLine(index, 'description', desc);
-                                  updateLine(index, 'unitPrice', Number(item.sellingPrice));
-                                } else if (typePrefix === 'sparepart') {
-                                  const item = spareParts[key];
-                                  const desc = `Spare Part: ${item.partName} (${item.partNumber})`;
-                                  updateLine(index, 'description', desc);
-                                  updateLine(index, 'unitPrice', Number(item.sellingPrice));
-                                }
-                                e.target.value = '';
-                              }}
-                              className="rounded border-gray-300 text-[11px] py-1 px-2 text-gray-600 focus:border-jolu-500 focus:ring-jolu-500 w-full max-w-xs"
-                            >
-                              <option value="">-- Choose Product / Spare Part --</option>
-                              <optgroup label="Tractors (Flyer Catalog)">
-                                {TRACTOR_CATALOG.map((item, i) => (
-                                  <option key={i} value={`tractor::${i}`}>{item.name} - KES {item.price.toLocaleString()}</option>
-                                ))}
-                              </optgroup>
-                              <optgroup label="Implements (Flyer Catalog)">
-                                {IMPLEMENT_CATALOG.map((item, i) => (
-                                  <option key={i} value={`implement::${i}`}>{item.name} - KES {item.price.toLocaleString()}</option>
-                                ))}
-                              </optgroup>
-                              {machineryUnits.length > 0 && (
-                                <optgroup label="Machinery Inventory (In Stock)">
-                                  {machineryUnits.map((item: any, i: number) => (
-                                    <option key={item.id} value={`machinery::${i}`}>{item.brand} {item.model} {item.productName} (S/N: {item.serialNumber || 'N/A'}) - KES {Number(item.sellingPrice).toLocaleString()}</option>
-                                  ))}
-                                </optgroup>
-                              )}
-                              {spareParts.length > 0 && (
-                                <optgroup label="Spare Parts Inventory">
-                                  {spareParts.map((item: any, i: number) => (
-                                    <option key={item.id} value={`sparepart::${i}`}>{item.partName} ({item.partNumber}) - KES {Number(item.sellingPrice).toLocaleString()}</option>
-                                  ))}
-                                </optgroup>
-                              )}
-                            </select>
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-3 pr-4">
-                        <input 
-                          type="number" 
-                          value={line.quantity} 
-                          onChange={(e) => updateLine(index, 'quantity', e.target.value)}
-                          className="w-full border-none focus:ring-0 p-0 text-sm"
-                          min="1"
-                        />
-                      </td>
-                      <td className="py-3 pr-4">
-                        <input 
-                          type="number" 
-                          value={line.unitPrice} 
-                          onChange={(e) => updateLine(index, 'unitPrice', e.target.value)}
-                          className="w-full border-none focus:ring-0 p-0 text-sm"
-                        />
-                      </td>
-                      <td className="py-3 pr-4">
-                        <select 
-                          value={line.taxRate} 
-                          onChange={(e) => updateLine(index, 'taxRate', Number(e.target.value))}
-                          className="w-full border-none focus:ring-0 p-0 text-sm bg-transparent"
-                        >
-                          <option value="0">0%</option>
-                          <option value="16">16%</option>
-                        </select>
-                      </td>
-                      <td className="py-3 text-right font-medium">
-                        {line.total.toLocaleString()}
-                      </td>
-                      <td className="py-3 text-right">
-                        <button 
-                          type="button" 
-                          onClick={() => removeLine(index)}
-                          className="text-gray-400 hover:text-red-500"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="flex flex-col items-end space-y-2 border-t pt-4">
-            <div className="flex justify-between w-64 text-sm">
-              <span className="text-gray-500">Subtotal:</span>
-              <span className="font-medium">KES {subtotal.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between w-64 text-sm">
-              <span className="text-gray-500">VAT (16%):</span>
-              <span className="font-medium">KES {taxAmount.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between w-64 text-lg font-bold">
-              <span>Total:</span>
-              <span className="text-jolu-700">KES {total.toLocaleString()}</span>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes / Terms</label>
-            <textarea 
-              value={notes} 
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-jolu-500 focus:ring-jolu-500"
-              placeholder="Payment terms, bank details, etc."
-            ></textarea>
-          </div>
+          {activeTab === 'machinery' && renderMachineryForm()}
+          {activeTab === 'spare-parts' && renderSparePartForm()}
+          {activeTab === 'vehicles' && renderVehicleForm()}
 
           <div className="flex justify-end gap-3 pt-6">
-            <button 
-              type="button" 
-              onClick={onClose}
-              className="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
-            >
+            <button type="button" onClick={onClose} className="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 font-medium">
               Cancel
             </button>
-            <button 
-              type="submit"
-              className="btn-primary"
-            >
-              Create Invoice
+            <button type="submit" className="btn-primary">
+              Add to Inventory
             </button>
           </div>
         </form>

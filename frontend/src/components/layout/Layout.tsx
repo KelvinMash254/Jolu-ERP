@@ -66,7 +66,12 @@ export default function Layout() {
   const filteredNav = navItems.filter((item) => {
     if (item.roles && !item.roles.includes(user?.role || '')) return false;
     if (item.companies && currentCompany && !item.companies.includes(currentCompany.code)) return false;
-    // Special case for inventory label if needed, but keeping it simple for now
+    if (item.to === '/users') {
+      const allowedEmails = ['admin@jolugroup.co.ke', 'john@jolugroup.com', 'lucy@jolugroup.com'];
+      if (!user || !allowedEmails.includes(user.email.toLowerCase())) {
+        return false;
+      }
+    }
     return true;
   });
 
