@@ -157,6 +157,7 @@ export const carHireApi = {
   createMaintenance: (data: object) => api.post('/car-hire/maintenance', data),
   getDashboard: () => api.get('/car-hire/dashboard'),
   getReports: () => api.get('/car-hire/reports'),
+  uploadDocs: (id: string, data: FormData) => api.patch(`/car-hire/${id}/upload-docs`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
 };
 
 export const machineryDocsApi = {

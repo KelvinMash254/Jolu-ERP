@@ -379,23 +379,36 @@ export async function processPaymentAndSendReceipt(
   if (clientEmail) {
     const subject = `Payment Receipt - ${updatedInvoice.invoiceNumber}`;
     const text = `
+=========================================
+          PAYMENT RECEIPT
+=========================================
+
 Dear ${clientName},
 
-Thank you for your payment.
+Thank you for your payment. We have successfully processed your payment.
 
-We have successfully processed your payment of KES ${amount.toLocaleString(undefined, { minimumFractionDigits: 2 })} via ${paymentMethod}.
+RECEIPT REFERENCE DETAILS:
+-----------------------------------------
+Receipt Headline: OFFICIAL PAYMENT RECEIPT
+Receipt Number:   REC-${reference || 'N/A'}
+Invoice Number:   ${updatedInvoice.invoiceNumber}
+Payment Date:     ${new Date().toLocaleDateString('en-GB')}
+Payment Method:   ${paymentMethod}
+Reference Code:   ${reference || 'N/A'}
+-----------------------------------------
 
-Transaction Details:
-* Invoice Number: ${updatedInvoice.invoiceNumber}
-* Payment Amount: KES ${amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-* Payment Method: ${paymentMethod}
-* Reference Code: ${reference}
-* Remaining Balance: KES ${(Number(updatedInvoice.totalAmount) - newAmountPaid).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+AMOUNT SUMMARY:
+-----------------------------------------
+Paid Amount:      KES ${amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+Total Invoice:    KES ${Number(updatedInvoice.totalAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+Amount Paid So Far: KES ${newAmountPaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+Remaining Balance: KES ${(Number(updatedInvoice.totalAmount) - newAmountPaid).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+-----------------------------------------
 
-Please find the attached receipt PDF for your records.
+Please find the attached official receipt PDF for your records. Should you have any questions, please reply directly to this email.
 
 Kind regards,
-Jolu Group Invoicing Department
+Jolu Group Invoicing & Finance Department
     `;
 
     const senderEmail = updatedInvoice.company.email || 'info@jolugroup.co.ke';

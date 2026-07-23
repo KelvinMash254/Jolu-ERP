@@ -682,6 +682,37 @@ function BookingInspectionPaymentsRow({ booking }: { booking: any }) {
     }
   };
 
+  const [contractFile, setContractFile] = useState<File | null>(null);
+  const [idCardFile, setIdCardFile] = useState<File | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [uploadingDocs, setUploadingDocs] = useState(false);
+
+  const handleUploadDocs = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contractFile && !idCardFile && !photoFile) {
+      toast.error('Please select at least one document to upload');
+      return;
+    }
+    setUploadingDocs(true);
+    try {
+      const fd = new FormData();
+      if (contractFile) fd.append('signedContract', contractFile);
+      if (idCardFile) fd.append('clientIdCard', idCardFile);
+      if (photoFile) fd.append('clientPhoto', photoFile);
+
+      await carHireApi.uploadDocs(booking.id, fd);
+      toast.success('Documents uploaded successfully!');
+      queryClient.invalidateQueries({ queryKey: ['carHireBookings'] });
+      setContractFile(null);
+      setIdCardFile(null);
+      setPhotoFile(null);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to upload documents');
+    } finally {
+      setUploadingDocs(false);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* SUMMARY */}
@@ -709,6 +740,54 @@ function BookingInspectionPaymentsRow({ booking }: { booking: any }) {
               <Wrench className="w-3.5 h-3.5" /> Start Return Inspection
             </button>
           )}
+        </div>
+
+        {/* Customer Documents Upload Panel */}
+        <div className="border-t pt-4 space-y-3">
+          <h5 className="font-bold text-xs text-gray-700">Customer Documents (ID, KRA PIN, Agreement)</h5>
+          
+          <div className="space-y-1.5 text-xs text-gray-600">
+            <div>
+              <span className="font-bold">National ID/Passport: </span>
+              {booking.clientIdCardUrl ? (
+                <a href={booking.clientIdCardUrl} target="_blank" rel="noreferrer" className="text-jolu-600 hover:underline font-bold">Download File</a>
+              ) : <span className="text-red-500">Not uploaded</span>}
+            </div>
+            <div>
+              <span className="font-bold">KRA PIN Document: </span>
+              {booking.clientPhotoUrl ? (
+                <a href={booking.clientPhotoUrl} target="_blank" rel="noreferrer" className="text-jolu-600 hover:underline font-bold">Download File</a>
+              ) : <span className="text-red-500">Not uploaded</span>}
+            </div>
+            <div>
+              <span className="font-bold">Hire Agreement: </span>
+              {booking.signedContractUrl ? (
+                <a href={booking.signedContractUrl} target="_blank" rel="noreferrer" className="text-jolu-600 hover:underline font-bold">Download File</a>
+              ) : <span className="text-red-500">Not uploaded</span>}
+            </div>
+          </div>
+
+          <form onSubmit={handleUploadDocs} className="space-y-3 bg-gray-50 p-3 rounded-lg border text-[11px]">
+            <div>
+              <label className="block font-bold text-gray-700 mb-1">Upload ID/Passport</label>
+              <input type="file" className="w-full text-xs" onChange={e => setIdCardFile(e.target.files?.[0] || null)} />
+            </div>
+            <div>
+              <label className="block font-bold text-gray-700 mb-1">Upload KRA PIN</label>
+              <input type="file" className="w-full text-xs" onChange={e => setPhotoFile(e.target.files?.[0] || null)} />
+            </div>
+            <div>
+              <label className="block font-bold text-gray-700 mb-1">Upload Hire Agreement</label>
+              <input type="file" className="w-full text-xs" onChange={e => setContractFile(e.target.files?.[0] || null)} />
+            </div>
+            <button
+              type="submit"
+              disabled={uploadingDocs}
+              className="w-full bg-jolu-600 hover:bg-jolu-700 text-white font-bold py-1.5 rounded text-xs transition-colors"
+            >
+              {uploadingDocs ? 'Uploading...' : 'Upload Selected Files'}
+            </button>
+          </form>
         </div>
       </div>
 
