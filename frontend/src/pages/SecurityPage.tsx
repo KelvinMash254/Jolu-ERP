@@ -278,7 +278,7 @@ export default function SecurityPage() {
               description: `Security Services for ${selectedContract.contractNumber}`,
               quantity: 1,
               unitPrice: selectedContract.monthlyFee,
-              taxRate: 16,
+              taxRate: 0,
               total: selectedContract.monthlyFee
             }]
           }}

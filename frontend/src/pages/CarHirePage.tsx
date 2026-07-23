@@ -207,6 +207,7 @@ export default function CarHirePage() {
               carHireApi.updateVehicle(vid, { status }).then(() => {
                 toast.success('Vehicle status updated');
                 queryClient.invalidateQueries({ queryKey: ['fleetVehicles'] });
+                setTimeout(() => { window.location.reload(); }, 800);
               });
             }}
           />
@@ -219,6 +220,7 @@ export default function CarHirePage() {
               carHireApi.updateDriver(did, { status }).then(() => {
                 toast.success('Driver status updated');
                 queryClient.invalidateQueries({ queryKey: ['fleetDrivers'] });
+                setTimeout(() => { window.location.reload(); }, 800);
               });
             }}
           />
@@ -767,27 +769,37 @@ function BookingInspectionPaymentsRow({ booking }: { booking: any }) {
             </div>
           </div>
 
-          <form onSubmit={handleUploadDocs} className="space-y-3 bg-gray-50 p-3 rounded-lg border text-[11px]">
-            <div>
-              <label className="block font-bold text-gray-700 mb-1">Upload ID/Passport</label>
-              <input type="file" className="w-full text-xs" onChange={e => setIdCardFile(e.target.files?.[0] || null)} />
-            </div>
-            <div>
-              <label className="block font-bold text-gray-700 mb-1">Upload KRA PIN</label>
-              <input type="file" className="w-full text-xs" onChange={e => setPhotoFile(e.target.files?.[0] || null)} />
-            </div>
-            <div>
-              <label className="block font-bold text-gray-700 mb-1">Upload Hire Agreement</label>
-              <input type="file" className="w-full text-xs" onChange={e => setContractFile(e.target.files?.[0] || null)} />
-            </div>
-            <button
-              type="submit"
-              disabled={uploadingDocs}
-              className="w-full bg-jolu-600 hover:bg-jolu-700 text-white font-bold py-1.5 rounded text-xs transition-colors"
-            >
-              {uploadingDocs ? 'Uploading...' : 'Upload Selected Files'}
-            </button>
-          </form>
+          {!(booking.clientIdCardUrl && booking.clientPhotoUrl && booking.signedContractUrl) ? (
+            <form onSubmit={handleUploadDocs} className="space-y-3 bg-gray-50 p-3 rounded-lg border text-[11px]">
+              {!booking.clientIdCardUrl && (
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Upload ID/Passport</label>
+                  <input type="file" className="w-full text-xs" onChange={e => setIdCardFile(e.target.files?.[0] || null)} />
+                </div>
+              )}
+              {!booking.clientPhotoUrl && (
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Upload KRA PIN</label>
+                  <input type="file" className="w-full text-xs" onChange={e => setPhotoFile(e.target.files?.[0] || null)} />
+                </div>
+              )}
+              {!booking.signedContractUrl && (
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Upload Hire Agreement</label>
+                  <input type="file" className="w-full text-xs" onChange={e => setContractFile(e.target.files?.[0] || null)} />
+                </div>
+              )}
+              <button
+                type="submit"
+                disabled={uploadingDocs}
+                className="w-full bg-jolu-600 hover:bg-jolu-700 text-white font-bold py-1.5 rounded text-xs transition-colors"
+              >
+                {uploadingDocs ? 'Uploading...' : 'Upload Selected Files'}
+              </button>
+            </form>
+          ) : (
+            <p className="text-xs text-green-600 font-bold bg-green-50 p-2 rounded border border-green-200 text-center">All documents uploaded successfully!</p>
+          )}
         </div>
       </div>
 

@@ -21,7 +21,15 @@ export default function InventoryModal({ isOpen, onClose, onSubmit, activeTab }:
   };
 
   const handleChange = (field: string, value: any) => {
-    setFormData((prev: any) => ({ ...prev, [field]: value }));
+    setFormData((prev: any) => {
+      const updated = { ...prev, [field]: value };
+      if (field === 'dailyRate') {
+        const rate = Number(value);
+        updated.weeklyRate = rate * 7;
+        updated.monthlyRate = rate * 30;
+      }
+      return updated;
+    });
   };
 
   const renderMachineryForm = () => (
@@ -299,15 +307,15 @@ const renderSparePartForm = () => (
         </div>
         <div>
           <label className="label">Daily Rate (KES)</label>
-          <input className="input" type="number" required onChange={(e) => handleChange('dailyRate', Number(e.target.value))} />
+          <input className="input" type="number" required value={formData.dailyRate || ''} onChange={(e) => handleChange('dailyRate', Number(e.target.value))} />
         </div>
         <div>
           <label className="label">Weekly Rate (KES)</label>
-          <input className="input" type="number" required onChange={(e) => handleChange('weeklyRate', Number(e.target.value))} />
+          <input className="input" type="number" required value={formData.weeklyRate || ''} onChange={(e) => handleChange('weeklyRate', Number(e.target.value))} />
         </div>
         <div>
           <label className="label">Monthly Rate (KES)</label>
-          <input className="input" type="number" required onChange={(e) => handleChange('monthlyRate', Number(e.target.value))} />
+          <input className="input" type="number" required value={formData.monthlyRate || ''} onChange={(e) => handleChange('monthlyRate', Number(e.target.value))} />
         </div>
       </div>
     </>

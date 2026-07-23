@@ -40,6 +40,15 @@ const SECURITY_SERVICES_CATALOG = [
   { name: "VIP Escort & Bodyguard Services", price: 50000 },
 ];
 
+const AUTOMOBILE_SERVICES_CATALOG = [
+  { name: "Car Hire / Rental Service (Daily)", price: 5000 },
+  { name: "Chauffeur / Driver Service (Daily)", price: 2000 },
+  { name: "Airport Transfer Service", price: 3500 },
+  { name: "Vehicle Maintenance / Service", price: 8000 },
+  { name: "Wheel Alignment & Wheel Balancing", price: 2500 },
+  { name: "Full Body Car Wash & Detailing", price: 1500 },
+];
+
 interface InvoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -118,7 +127,7 @@ export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }:
         setContractId(initialData.contractId || '');
         setLines(initialData.lines || [{ description: '', quantity: 1, unitPrice: 0, taxRate: 0, total: 0 }]);
       } else if (currentCompany?.code === 'SECURITY') {
-        setLines([{ description: 'Security Services', quantity: 1, unitPrice: 15000, taxRate: 16, total: 15000 }]);
+        setLines([{ description: 'Security Services', quantity: 1, unitPrice: 15000, taxRate: 0, total: 15000 }]);
       } else {
         setLines([{ description: '', quantity: 1, unitPrice: 0, taxRate: 0, total: 0 }]);
       }
@@ -149,10 +158,17 @@ export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }:
     enabled: isOpen && currentCompany?.code === 'MACHINERIES',
   });
 
+  const { data: vehiclesData } = useQuery({
+    queryKey: ['vehicles-units-invoice'],
+    queryFn: () => inventoryApi.getVehicles(),
+    enabled: isOpen && currentCompany?.code === 'AUTOMOBILE',
+  });
+
   const customers = customersData?.data?.data || [];
   const securityClients = securityClientsData?.data?.data || [];
   const spareParts = sparePartsData?.data?.data || [];
   const machineryUnits = (machineryData?.data?.data || []).filter((u: any) => u.stockStatus === 'IN_STOCK');
+  const vehicles = vehiclesData?.data?.data || [];
 
   const addLine = () => {
     setLines([...lines, { description: '', quantity: 1, unitPrice: 0, taxRate: 0, total: 0 }]);
@@ -532,6 +548,44 @@ export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }:
                             </select>
                           </div>
                         )}
+                        {currentCompany?.code === 'AUTOMOBILE' && (
+                          <div className="pt-1">
+                            <select
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (!val) return;
+                                const [typePrefix, keyStr] = val.split('::');
+                                const key = Number(keyStr);
+                                if (typePrefix === 'service') {
+                                  const item = AUTOMOBILE_SERVICES_CATALOG[key];
+                                  updateLine(index, 'description', item.name);
+                                  updateLine(index, 'unitPrice', item.price);
+                                } else if (typePrefix === 'vehicle') {
+                                  const item = vehicles[key];
+                                  const desc = `Vehicle Rental: ${item.make} ${item.model} (${item.registrationNumber})`;
+                                  updateLine(index, 'description', desc);
+                                  updateLine(index, 'unitPrice', Number(item.dailyRate || 0));
+                                }
+                                e.target.value = '';
+                              }}
+                              className="rounded border-gray-300 text-[11px] py-1 px-2 text-gray-600 focus:border-jolu-500 focus:ring-jolu-500 w-full max-w-xs"
+                            >
+                              <option value="">-- Choose Automobile Service / Vehicle --</option>
+                              <optgroup label="Standard Automobile Services">
+                                {AUTOMOBILE_SERVICES_CATALOG.map((item, i) => (
+                                  <option key={i} value={`service::${i}`}>{item.name} - KES {item.price.toLocaleString()}</option>
+                                ))}
+                              </optgroup>
+                              {vehicles.length > 0 && (
+                                <optgroup label="Fleet Inventory Vehicles">
+                                  {vehicles.map((item: any, i: number) => (
+                                    <option key={item.id} value={`vehicle::${i}`}>{item.make} {item.model} ({item.registrationNumber}) - KES {Number(item.dailyRate || 0).toLocaleString()}</option>
+                                  ))}
+                                </optgroup>
+                              )}
+                            </select>
+                          </div>
+                        )}
                         {currentCompany?.code === 'SECURITY' && (
                           <div className="pt-1">
                             <select
@@ -544,13 +598,13 @@ export default function InvoiceModal({ isOpen, onClose, onSubmit, initialData }:
                                   const item = SECURITY_SERVICES_CATALOG[key];
                                   updateLine(index, 'description', item.name);
                                   updateLine(index, 'unitPrice', item.price);
-                                  updateLine(index, 'taxRate', 16);
+                                  updateLine(index, 'taxRate', 0);
                                 } else if (typePrefix === 'item') {
                                   const item = spareParts[key];
                                   const desc = `Security Item: ${item.partName} (${item.partNumber})`;
                                   updateLine(index, 'description', desc);
                                   updateLine(index, 'unitPrice', Number(item.sellingPrice || 0));
-                                  updateLine(index, 'taxRate', 16);
+                                  updateLine(index, 'taxRate', 0);
                                 }
                                 e.target.value = '';
                               }}
